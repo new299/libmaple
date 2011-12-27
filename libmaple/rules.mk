@@ -3,8 +3,8 @@ sp              := $(sp).x
 dirstack_$(sp)  := $(d)
 d               := $(dir)
 BUILDDIRS       += $(BUILD_PATH)/$(d)
-BUILDDIRS       += $(BUILD_PATH)/$(d)/usb
-BUILDDIRS       += $(BUILD_PATH)/$(d)/usb/usb_lib
+#BUILDDIRS       += $(BUILD_PATH)/$(d)/usb
+#BUILDDIRS       += $(BUILD_PATH)/$(d)/usb/usb_lib
 
 LIBMAPLE_INCLUDES := -I$(LIBMAPLE_PATH) -I$(LIBMAPLE_PATH)/usb -I$(LIBMAPLE_PATH)/usb/usb_lib
 
@@ -30,14 +30,14 @@ cSRCS_$(d) := adc.c                    \
               systick.c                \
               timer.c                  \
               usart.c                  \
-              util.c                   \
-              usb/usb.c                \
-              usb/usb_reg_map.c        \
-              usb/usb_cdcacm.c         \
-              usb/usb_lib/usb_core.c   \
-              usb/usb_lib/usb_init.c   \
-              usb/usb_lib/usb_mem.c    \
-              usb/usb_lib/usb_regs.c
+              util.c          
+#              usb/usb.c                \   # bunnie TODO: make this swap-out based on BOARD identifier
+#              usb/usb_reg_map.c        \
+#              usb/usb_cdcacm.c         \
+#              usb/usb_lib/usb_core.c   \
+#              usb/usb_lib/usb_init.c   \
+#              usb/usb_lib/usb_mem.c    \
+#              usb/usb_lib/usb_regs.c
 
 sSRCS_$(d) := exc.S
 

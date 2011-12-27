@@ -18,6 +18,7 @@ cppSRCS_$(d) := wirish_math.cpp		 \
                 Print.cpp		 \
 		boards.cpp               \
                 boards/maple.cpp	 \
+                boards/safecast.cpp	 \
                 boards/maple_mini.cpp	 \
                 boards/maple_native.cpp	 \
                 boards/maple_RET6.cpp	 \
@@ -25,7 +26,6 @@ cppSRCS_$(d) := wirish_math.cpp		 \
                 comm/HardwareSerial.cpp	 \
                 comm/HardwareSPI.cpp	 \
 		HardwareTimer.cpp	 \
-                usb_serial.cpp		 \
                 cxxabi-compat.cpp	 \
 		wirish_shift.cpp	 \
 		wirish_analog.cpp	 \
@@ -33,6 +33,7 @@ cppSRCS_$(d) := wirish_math.cpp		 \
 		pwm.cpp 		 \
 		ext_interrupts.cpp	 \
 		wirish_digital.cpp
+#                usb_serial.cpp		 \  # bunnie TODO: need to make this BOARD dependent
 
 cFILES_$(d)   := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

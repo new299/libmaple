@@ -112,6 +112,7 @@ void rcc_clk_init(rcc_sysclk_src sysclk_src,
     uint32 cfgr = 0;
     uint32 cr;
 
+#if !defined(BOARD_safecast)
     /* Assume that we're going to clock the chip off the PLL, fed by
      * the HSE */
     ASSERT(sysclk_src == RCC_CLKSRC_PLL &&
@@ -138,6 +139,29 @@ void rcc_clk_init(rcc_sysclk_src sysclk_src,
     RCC_BASE->CFGR = cfgr;
     while ((RCC_BASE->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL)
         ;
+#else
+    RCC_BASE->CFGR = pll_src | pll_mul;
+
+    // safecast uses the HSI
+    cr = RCC_BASE->CR;
+    cr |= RCC_CR_HSION;
+    RCC_BASE->CR = cr;
+    while (!(RCC_BASE->CR & RCC_CR_HSIRDY))
+        ;
+    
+    /* Now the PLL */
+    cr |= RCC_CR_PLLON;
+    RCC_BASE->CR = cr;
+    while (!(RCC_BASE->CR & RCC_CR_PLLRDY))
+        ;
+
+    /* Finally, let's switch over to the PLL */
+    cfgr &= ~RCC_CFGR_SW;
+    cfgr |= RCC_CFGR_SW_PLL;
+    RCC_BASE->CFGR = cfgr;
+    while ((RCC_BASE->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL)
+        ;
+#endif
 }
 
 /**

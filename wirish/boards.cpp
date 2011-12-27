@@ -41,7 +41,7 @@
 #include "gpio.h"
 #include "adc.h"
 #include "timer.h"
-#include "usb_cdcacm.h"
+//#include "usb_cdcacm.h"
 
 static void setupFlash(void);
 static void setupClocks(void);
@@ -58,7 +58,7 @@ void init(void) {
     afio_init();
     setupADC();
     setupTimers();
-    usb_cdcacm_enable(BOARD_USB_DISC_DEV, BOARD_USB_DISC_BIT);
+    //    usb_cdcacm_enable(BOARD_USB_DISC_DEV, BOARD_USB_DISC_BIT);
     boardInit();
 }
 
@@ -87,9 +87,9 @@ static void setupFlash(void) {
  * comment above.
  */
 static void setupClocks() {
-    rcc_clk_init(RCC_CLKSRC_PLL, RCC_PLLSRC_HSE, RCC_PLLMUL_9);
+    rcc_clk_init(RCC_CLKSRC_PLL, RCC_PLLSRC_HSI_DIV_2, RCC_PLLMUL_9); 
     rcc_set_prescaler(RCC_PRESCALER_AHB, RCC_AHB_SYSCLK_DIV_1);
-    rcc_set_prescaler(RCC_PRESCALER_APB1, RCC_APB1_HCLK_DIV_2);
+    rcc_set_prescaler(RCC_PRESCALER_APB1, RCC_APB1_HCLK_DIV_1);
     rcc_set_prescaler(RCC_PRESCALER_APB2, RCC_APB2_HCLK_DIV_1);
 }
 

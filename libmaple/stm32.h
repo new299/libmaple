@@ -54,6 +54,9 @@
 
 #endif
 
+#if !defined(BOARD_safecast)
+#error "not building for safecast"
+
 #ifndef STM32_PCLK1
 #define STM32_PCLK1   36000000U
 #endif
@@ -72,6 +75,30 @@
 #endif
 #if PCLK2 != STM32_PCLK2
 #error "(Deprecated) PCLK2 differs from STM32_PCLK2"
+#endif
+
+#else
+
+#ifndef STM32_PCLK1
+#define STM32_PCLK1   36000000U  // 8mhz / 2 * 9, i.e. HSI * 4.5
+#endif
+#ifndef PCLK1
+#define PCLK1 STM32_PCLK1
+#endif
+#if PCLK1 != STM32_PCLK1
+#error "(Deprecated) PCLK1 differs from STM32_PCLK1"
+#endif
+
+#ifndef STM32_PCLK2
+#define STM32_PCLK2   36000000U
+#endif
+#ifndef PCLK2
+#define PCLK2 STM32_PCLK2
+#endif
+#if PCLK2 != STM32_PCLK2
+#error "(Deprecated) PCLK2 differs from STM32_PCLK2"
+#endif
+
 #endif
 
 /*
@@ -177,6 +204,16 @@
     #define STM32_NR_GPIO_PORTS          4
     #define STM32_DELAY_US_MULT         12
     #define STM32_SRAM_END              ((void*)0x20010000)
+
+    #define NR_GPIO_PORTS               STM32_NR_GPIO_PORTS
+    #define DELAY_US_MULT               STM32_DELAY_US_MULT
+
+#elif defined(MCU_STM32F101RE)
+/* e.g., safecast */
+
+    #define STM32_NR_GPIO_PORTS          4
+    #define STM32_DELAY_US_MULT         6    // half of others as 101 clocks at half speed
+    #define STM32_SRAM_END              ((void*)0x2000C000)
 
     #define NR_GPIO_PORTS               STM32_NR_GPIO_PORTS
     #define DELAY_US_MULT               STM32_DELAY_US_MULT

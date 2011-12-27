@@ -62,11 +62,13 @@ static const spi_pins board_spi_pins[] __FLASH__ = {
      BOARD_SPI2_SCK_PIN,
      BOARD_SPI2_MISO_PIN,
      BOARD_SPI2_MOSI_PIN},
+#if !defined(BOARD_safecast)
 #ifdef STM32_HIGH_DENSITY
     {BOARD_SPI3_NSS_PIN,
      BOARD_SPI3_SCK_PIN,
      BOARD_SPI3_MISO_PIN,
      BOARD_SPI3_MOSI_PIN},
+#endif
 #endif
 };
 

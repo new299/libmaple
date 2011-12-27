@@ -31,8 +31,8 @@ PRODUCT_ID := 0003
 
 # Try "make help" for more information on BOARD and MEMORY_TARGET;
 # these default to a Maple Flash build.
-BOARD ?= maple
-MEMORY_TARGET ?= flash
+BOARD ?= safecast
+MEMORY_TARGET ?= jtag
 
 # $(BOARD)- and $(MEMORY_TARGET)-specific configuration
 include $(MAKEDIR)/target-config.mk

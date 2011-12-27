@@ -50,6 +50,17 @@ ifeq ($(BOARD), olimex_stm32_h103)
    SRAM_SIZE := 20480
 endif
 
+ifeq ($(BOARD), safecast)
+   MCU := STM32F101RE
+   PRODUCT_ID := 0003  # not relevant in our case
+   ERROR_LED_PORT := GPIOD
+   ERROR_LED_PIN  := 2
+   DENSITY := STM32_HIGH_DENSITY
+   FLASH_SIZE := 524288
+   SRAM_SIZE := 49152
+endif
+
+
 # Memory target-specific configuration values
 
 ifeq ($(MEMORY_TARGET), ram)
