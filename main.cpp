@@ -3,85 +3,253 @@
 
 #include "wirish.h"
 #include "i2c.h"
+#include "mpr121.h"
 
-#define PWM_PIN  2
+#define CAPTOUCH_ADDR 0x5A
+#define CAPTOUCH_I2C I2C1
+#define CAPTOUCH_GPIO 30
+
+#define LED_GPIO 25
+
 static struct i2c_dev *i2c;
 
-void setup() {
-    /* Set up the LED to blink  */
-    pinMode(25, OUTPUT);  // hard coded guess for now
 
-#if 0
-    /* Turn on PWM on pin PWM_PIN */
-    pinMode(PWM_PIN, PWM);
-    pwmWrite(PWM_PIN, 0x8000);
-#endif
+/*
+static void
+cap_read(void)
+{
+    return;
+}
+*/
 
-    /* Send a message out USART2  */
-    Serial1.begin(115200);
-    Serial1.println("Hello world!");
-    i2c_init(i2c);
-    i2c_master_enable(i2c, 0);
-
-    /* Send a message out the usb virtual serial port  */
-    //    SerialUSB.println("Hello!");
+static void
+cap_down(void)
+{
+    toggleLED();
+    Serial1.println("Got toggle");
+    return;
 }
 
-void loop() {
-    #if 0
-typedef struct i2c_msg {
-    uint16 addr;                /**< Address */
-#define I2C_MSG_READ            0x1
-#define I2C_MSG_10BIT_ADDR      0x2
-    uint16 flags;               /**< Bitwise OR of I2C_MSG_READ and
-                                     I2C_MSG_10BIT_ADDR */
-    uint16 length;              /**< Message length */
-    uint16 xferred;             /**< Messages transferred */
-    uint8 *data;                /**< Data */
-} i2c_msg;
-    #endif
 
-    struct i2c_msg msgs[2];
-    uint8 byte;
+static void
+mpr121Write(uint8 addr, uint8 value)
+{
+    struct i2c_msg msg;
+    uint8 bytes[2];
     int result;
 
-    msgs[0].addr = 0x5A;
+    bytes[0] = addr;
+    bytes[1] = value;
+
+    msg.addr = CAPTOUCH_ADDR;
+    msg.flags = 0;
+    msg.length = sizeof(bytes);
+    msg.xferred = 0;
+    msg.data = bytes;
+
+    result = i2c_master_xfer(i2c, &msg, 1, 100);
+    if (!result) {
+        Serial1.print(addr); Serial1.print(" -> "); Serial1.print(value); Serial1.print("\r\n");
+    }
+    else {
+        Serial1.print(addr); Serial1.print(" err "); Serial1.print(result); Serial1.print("\r\n");
+    }
+    //Serial1.print(".");
+
+    return;
+}
+
+static uint8
+mpr121Read(uint8 addr)
+{
+    struct i2c_msg msgs[2];
+    uint8 byte;
+
+    byte = addr;
+    msgs[0].addr   = msgs[1].addr   = CAPTOUCH_ADDR;
+    msgs[0].length = msgs[1].length = sizeof(byte);
+    msgs[0].data   = msgs[1].data   = &byte;
     msgs[0].flags = 0;
-    msgs[0].length = 1;
-    msgs[0].xferred = 0;
-    byte = 0x00;
-    msgs[0].data = &byte;
-
-    msgs[1].addr = 0x5A;
     msgs[1].flags = I2C_MSG_READ;
-    msgs[1].length = 1;
-    msgs[1].xferred = 0;
-    msgs[1].data = &byte;
+    i2c_master_xfer(i2c, msgs, 2, 100);
+    return byte;
+}
 
-    toggleLED();
-    result = i2c_master_xfer(i2c, msgs, 2, 100);
-    Serial1.print("I2C Result: ");
-    Serial1.print(result);
-    Serial1.print(" / ");
-    Serial1.print(byte, 16);
-    Serial1.print("\n");
-    delay(500);
-    Serial1.println("Hello world!");
+
+static void
+setup_i2c()
+{
+    i2c = CAPTOUCH_I2C;
+    i2c_init(i2c);
+    i2c_master_enable(i2c, 0);
+    Serial1.print(".");
+
+    // Section A
+    // This group controls filtering when data is > baseline.
+    mpr121Write(MHD_R, 0x01);
+    mpr121Write(NHD_R, 0x01);
+    mpr121Write(NCL_R, 0x50);
+    mpr121Write(FDL_R, 0x50);
+
+    // Section B
+    // This group controls filtering when data is < baseline.
+    mpr121Write(MHD_F, 0x01);
+    mpr121Write(NHD_F, 0x01);
+    mpr121Write(NCL_F, 0xFF);
+    mpr121Write(FDL_F, 0x52);
+
+    // Section C
+    // This group sets touch and release thresholds for each electrode
+    mpr121Write(ELE0_T, TOU_THRESH);
+    mpr121Write(ELE0_R, REL_THRESH);
+    mpr121Write(ELE1_T, TOU_THRESH);
+    mpr121Write(ELE1_R, REL_THRESH);
+    mpr121Write(ELE2_T, TOU_THRESH);
+    mpr121Write(ELE2_R, REL_THRESH);
+    mpr121Write(ELE3_T, TOU_THRESH);
+    mpr121Write(ELE3_R, REL_THRESH);
+    mpr121Write(ELE4_T, TOU_THRESH);
+    mpr121Write(ELE4_R, REL_THRESH);
+    mpr121Write(ELE5_T, TOU_THRESH);
+    mpr121Write(ELE5_R, REL_THRESH);
+    mpr121Write(ELE6_T, TOU_THRESH);
+    mpr121Write(ELE6_R, REL_THRESH);
+    mpr121Write(ELE7_T, TOU_THRESH);
+    mpr121Write(ELE7_R, REL_THRESH);
+    mpr121Write(ELE8_T, TOU_THRESH);
+    mpr121Write(ELE8_R, REL_THRESH);
+    mpr121Write(ELE9_T, TOU_THRESH);
+    mpr121Write(ELE9_R, REL_THRESH);
+    mpr121Write(ELE10_T, TOU_THRESH);
+    mpr121Write(ELE10_R, REL_THRESH);
+    mpr121Write(ELE11_T, TOU_THRESH);
+    mpr121Write(ELE11_R, REL_THRESH);
+
+    // Section D
+    // Set the Filter Configuration
+    // Set ESI2
+    mpr121Write(FIL_CFG, 0x04);
+
+    // Section E
+    // Electrode Configuration
+    // Enable 6 Electrodes and set to run mode
+    // Set ELE_CFG to 0x00 to return to standby mode
+    mpr121Write(ELE_CFG, 0x0C);   // Enables all 12 Electrodes
+    //mpr121Write(ELE_CFG, 0x06);     // Enable first 6 electrodes
+
+    // Section F
+    // Enable Auto Config and auto Reconfig
+    mpr121Write(ATO_CFG0, 0x0B);
+    mpr121Write(ATO_CFGU, 0xC9);  // USL = (Vdd-0.7)/vdd*256 = 0xC9 @3.3V
+    mpr121Write(ATO_CFGL, 0x82);  // LSL = 0.65*USL = 0x82 @3.3V
+    mpr121Write(ATO_CFGT, 0xB5);    // Target = 0.9*USL = 0xB5 @3.3V
+
+
+    return;
+}
+
+
+/* Single-call setup routine */
+static void
+setup()
+{
+    delay(1500);
+    Serial1.print("Initializing");
+
+
+    /* Set up the LED to blink  */
+    pinMode(LED_GPIO, OUTPUT);  // hard coded guess for now
+    pinMode(CAPTOUCH_GPIO, INPUT);  // hard coded guess for now
+    Serial1.print(".");
+
+    setup_i2c();
+
+    /* Set up PB11 to be an IRQ that triggers cap_down */
+    attachInterrupt(CAPTOUCH_GPIO, cap_down, CHANGE);
+
+    Serial1.println(" Done.\n");
+}
+
+
+/* Main loop */
+static void
+loop(unsigned int t)
+{
+    uint8 bytes[2];
+    bytes[0] = mpr121Read(0);
+    bytes[1] = mpr121Read(1);
+    
+    Serial1.print("Values: [");
+    Serial1.print(bytes[0]&(1<<0)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[0]&(1<<1)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[0]&(1<<2)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[0]&(1<<3)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[0]&(1<<4)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[0]&(1<<5)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[0]&(1<<6)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[0]&(1<<7)?"1":"0");
+    Serial1.print(" ");
+
+    Serial1.print(bytes[1]&(1<<0)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[1]&(1<<1)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[1]&(1<<2)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[1]&(1<<3)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[1]&(1<<4)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[1]&(1<<5)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[1]&(1<<6)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[1]&(1<<7)?"1":"0");
+    Serial1.print("]\r");
+    /*
+    Serial1.print("Loop "); Serial1.print(t); Serial1.print("  I2C Banks:\r\n");
+    for (i=0; i<0x1e; i++) {
+        Serial1.print("    ");
+        Serial1.print(i);
+        Serial1.print(" = 0x");
+        Serial1.print(mpr121Read(i), 16);
+        Serial1.print("\r\n");
+    }
+    Serial1.print("\r\n");
+    */
+
+    delay(100);
 }
 
 // Force init to be called *first*, i.e. before static object allocation.
 // Otherwise, statically allocated objects that need libmaple may fail.
-__attribute__((constructor)) void premain() {
+__attribute__((constructor)) void
+premain()
+{
     init();
+    /* Send a message out USART2  */
+    Serial1.begin(115200);
+    Serial1.println("Hello world!");
+    delay(1500);
 }
 
-int main(void) {
-    i2c = I2C1;
+
+
+int
+main(void)
+{
+    int t = 0;
     setup();
 
-    while (true) {
-        loop();
-    }
+    while (true)
+        loop(t++);
 
     return 0;
 }
