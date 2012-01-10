@@ -316,6 +316,6 @@ static spi_baud_rate determine_baud_rate(spi_dev *dev, SPIFrequency freq) {
         return (spi_baud_rate)~0;
     }
     return (rcc_dev_clk(dev->clk_id) == RCC_APB2 ?
-            baud_rates[freq + 1] :
-            baud_rates[freq]);
+            baud_rates[freq] :
+            baud_rates[freq-1]);
 }
