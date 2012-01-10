@@ -8,11 +8,12 @@
 #define CAPTOUCH_ADDR 0x5A
 #define CAPTOUCH_I2C I2C1
 #define CAPTOUCH_GPIO 30
+#define LCD_PWR_GPIO 16
 
 #define LED_GPIO 25
 
 static struct i2c_dev *i2c;
-
+extern void OLED_init(void);
 
 /*
 static void
@@ -54,7 +55,6 @@ mpr121Write(uint8 addr, uint8 value)
     else {
         Serial1.print(addr); Serial1.print(" err "); Serial1.print(result); Serial1.print("\r\n");
     }
-    //Serial1.print(".");
 
     return;
 }
@@ -83,6 +83,7 @@ setup_i2c()
     i2c_init(i2c);
     i2c_master_enable(i2c, 0);
     Serial1.print(".");
+    pinMode(CAPTOUCH_GPIO, INPUT);  // hard coded guess for now
 
     // Section A
     // This group controls filtering when data is > baseline.
@@ -148,6 +149,15 @@ setup_i2c()
     return;
 }
 
+static void
+setup_lcd(void)
+{
+    pinMode(LCD_PWR_GPIO, OUTPUT);  // hard coded guess for now
+    digitalWrite(LCD_PWR_GPIO, 1);
+    OLED_init();
+    return;
+}
+
 
 /* Single-call setup routine */
 static void
@@ -159,10 +169,10 @@ setup()
 
     /* Set up the LED to blink  */
     pinMode(LED_GPIO, OUTPUT);  // hard coded guess for now
-    pinMode(CAPTOUCH_GPIO, INPUT);  // hard coded guess for now
     Serial1.print(".");
 
     setup_i2c();
+    setup_lcd();
 
     /* Set up PB11 to be an IRQ that triggers cap_down */
     attachInterrupt(CAPTOUCH_GPIO, cap_down, CHANGE);
