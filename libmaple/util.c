@@ -38,12 +38,20 @@
 #include "timer.h"
 
 /* Failed ASSERT()s send out a message using this USART config. */
+#ifdef BOARD_safecast
+#define ERROR_USART            USART1
+#define ERROR_USART_CLK_SPEED  STM32_PCLK2
+#define ERROR_USART_BAUD       115200
+#define ERROR_TX_PORT          GPIOA
+#define ERROR_TX_PIN           7
+#else
 #ifndef ERROR_USART
 #define ERROR_USART            USART2
 #define ERROR_USART_CLK_SPEED  STM32_PCLK1
 #define ERROR_USART_BAUD       9600
 #define ERROR_TX_PORT          GPIOA
 #define ERROR_TX_PIN           2
+#endif
 #endif
 
 /* If you define ERROR_LED_PORT and ERROR_LED_PIN, then a failed
