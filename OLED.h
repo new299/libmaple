@@ -135,8 +135,6 @@ void ClearWindow(unsigned char x1,unsigned char y1, unsigned char x2, unsigned c
 void Reset_SSD1339(void);
 
 // write command or data
-void write_c(unsigned char out_command);
-void write_d(unsigned char out_data);
 void write_color(unsigned short out_color);
 //unsigned char read_d(void);
 
