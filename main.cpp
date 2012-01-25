@@ -8,9 +8,10 @@
 #define CAPTOUCH_ADDR 0x5A
 #define CAPTOUCH_I2C I2C1
 #define CAPTOUCH_GPIO 30
-#define LCD_PWR_GPIO 16
 
 #define LED_GPIO 25
+
+#define CHARGE_GPIO 38
 
 static struct i2c_dev *i2c;
 extern void OLED_init(void);
@@ -152,8 +153,6 @@ setup_i2c()
 static void
 setup_lcd(void)
 {
-    pinMode(LCD_PWR_GPIO, OUTPUT);  // hard coded guess for now
-    digitalWrite(LCD_PWR_GPIO, 1);
     OLED_init();
     return;
 }
@@ -163,16 +162,20 @@ setup_lcd(void)
 static void
 setup()
 {
-    delay(1500);
-    Serial1.print("Initializing");
+    //delay(1500);
+    Serial1.print("In setup()...");
 
 
     /* Set up the LED to blink  */
     pinMode(LED_GPIO, OUTPUT);  // hard coded guess for now
-    Serial1.print(".");
 
-    setup_i2c();
+    /* Set up battery charger */
+    pinMode(CHARGE_GPIO, OUTPUT);
+    digitalWrite(CHARGE_GPIO, 0);
+
+    /* Must happen AFTER battery is set up */
     setup_lcd();
+    //setup_i2c();
 
     /* Set up PB11 to be an IRQ that triggers cap_down */
     attachInterrupt(CAPTOUCH_GPIO, cap_down, CHANGE);
@@ -246,8 +249,9 @@ premain()
     init();
     /* Send a message out USART2  */
     Serial1.begin(115200);
-    Serial1.println("Hello world!");
-    delay(1500);
+    Serial1.print("In premain()...");
+    //delay(1500);
+    Serial1.println("Done.");
 }
 
 
@@ -258,8 +262,8 @@ main(void)
     int t = 0;
     setup();
 
-    while (true)
-        loop(t++);
+    while (true);
+//        loop(t++);
 
     return 0;
 }
