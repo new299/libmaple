@@ -98,15 +98,19 @@ void spi_gpio_cfg(uint8 as_master,
                   uint8 miso_bit,
                   uint8 mosi_bit) {
     if (as_master) {
-        gpio_set_mode(nss_dev, nss_bit, GPIO_AF_OUTPUT_PP);
         gpio_set_mode(comm_dev, sck_bit, GPIO_AF_OUTPUT_PP);
-        gpio_set_mode(comm_dev, miso_bit, GPIO_INPUT_FLOATING);
         gpio_set_mode(comm_dev, mosi_bit, GPIO_AF_OUTPUT_PP);
+#if !defined(BOARD_safecast)
+        gpio_set_mode(nss_dev, nss_bit, GPIO_AF_OUTPUT_PP);
+        gpio_set_mode(comm_dev, miso_bit, GPIO_INPUT_FLOATING);
+#endif
     } else {
-        gpio_set_mode(nss_dev, nss_bit, GPIO_INPUT_FLOATING);
         gpio_set_mode(comm_dev, sck_bit, GPIO_INPUT_FLOATING);
         gpio_set_mode(comm_dev, miso_bit, GPIO_AF_OUTPUT_PP);
+#if !defined(BOARD_safecast)
+        gpio_set_mode(nss_dev, nss_bit, GPIO_INPUT_FLOATING);
         gpio_set_mode(comm_dev, mosi_bit, GPIO_INPUT_FLOATING);
+#endif
     }
 }
 

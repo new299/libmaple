@@ -1,6 +1,8 @@
 # main project target
 $(BUILD_PATH)/main.o: main.cpp
 	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
+$(BUILD_PATH)/OLED.o: OLED.cpp
+	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
 
 $(BUILD_PATH)/libmaple.a: $(BUILDDIRS) $(TGT_BIN)
 	- rm -f $@
@@ -10,8 +12,8 @@ library: $(BUILD_PATH)/libmaple.a
 
 .PHONY: library
 
-$(BUILD_PATH)/$(BOARD).elf: $(BUILDDIRS) $(TGT_BIN) $(BUILD_PATH)/main.o
-	$(SILENT_LD) $(CXX) $(LDFLAGS) -o $@ $(TGT_BIN) $(BUILD_PATH)/main.o -Wl,-Map,$(BUILD_PATH)/$(BOARD).map
+$(BUILD_PATH)/$(BOARD).elf: $(BUILDDIRS) $(TGT_BIN) $(BUILD_PATH)/main.o $(BUILD_PATH)/OLED.o
+	$(SILENT_LD) $(CXX) $(LDFLAGS) -o $@ $(TGT_BIN) $(BUILD_PATH)/main.o $(BUILD_PATH)/OLED.o -Wl,-Map,$(BUILD_PATH)/$(BOARD).map
 
 $(BUILD_PATH)/$(BOARD).bin: $(BUILD_PATH)/$(BOARD).elf
 	$(SILENT_OBJCOPY) $(OBJCOPY) -v -Obinary $(BUILD_PATH)/$(BOARD).elf $@ 1>/dev/null

@@ -87,4 +87,10 @@
 #define BOARD_USB_DISC_DEV      GPIOC
 #define BOARD_USB_DISC_BIT      12
 
+#define ERROR_USART            USART1
+#define ERROR_USART_CLK_SPEED  STM32_PCLK2
+#define ERROR_USART_BAUD       115200
+#define ERROR_TX_PORT          GPIOA
+#define ERROR_TX_PIN           7
+
 #endif
