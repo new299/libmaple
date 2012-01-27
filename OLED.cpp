@@ -5,19 +5,19 @@
 #include <math.h>
 #include "wirish.h"
 #include "OLED.h"
-//#include "fonts.h"
 #define LCD_DC_GPIO 31
 #define LCD_CS_GPIO 33
 #define LCD_PWR_GPIO 16
 #define LCD_RES_GPIO 17
 
+#define BPP 2 /* 2 bytes per pixel */
+
 #define NOTE(x) Serial1.print(__FILE__); Serial1.print(":"); Serial1.print(__LINE__); Serial1.print(" "); Serial1.println(x);
 #define RGB16(r, b, g) ((((r)<<11L)&0x1fL) | (((g)<<5L)&0x3fL) | (((b)<<0L)&0x1fL))
 
 static HardwareSPI *spi;
-static uint16 screen[128*128];
 
-void
+static void
 write_c(unsigned char out_command)
 {	
     digitalWrite(LCD_DC_GPIO, 0);
@@ -25,7 +25,7 @@ write_c(unsigned char out_command)
     delayMicroseconds(70);
 }
 
-void
+static void
 write_d_stream(void *data, unsigned int count)
 {
     digitalWrite(LCD_DC_GPIO, 1);
@@ -47,7 +47,6 @@ platform_init(void)
 {
     spi = new HardwareSPI(2);
     spi->begin(SPI_9MHZ, MSBFIRST, SPI_MODE_3);
-    Serial1.print(__FILE__); Serial1.print(":"); Serial1.print(__LINE__); Serial1.println(" In platform_init...");
 
     /* Set the data/command pin to be a GPIO */
     pinMode(LCD_DC_GPIO, OUTPUT);
@@ -67,7 +66,6 @@ platform_init(void)
     digitalWrite(LCD_RES_GPIO, 0);
 	delayMicroseconds(20); /* Documentation says at least 2us */
     digitalWrite(LCD_RES_GPIO, 1);
-    Serial1.print(__FILE__); Serial1.print(":"); Serial1.print(__LINE__); Serial1.println(" Leaving platform_init...");
 }
 
 
@@ -85,7 +83,7 @@ platform_init(void)
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //  Instruction Setting
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-void Set_Column_Address(unsigned char a, unsigned char b)
+static void Set_Column_Address(unsigned char a, unsigned char b)
 {
     write_c(0x15);            // Set Column Address
     write_d(a);              //   Default => 0x00 (Start Address)
@@ -93,7 +91,7 @@ void Set_Column_Address(unsigned char a, unsigned char b)
 }
 
 
-void Set_Row_Address(unsigned char a, unsigned char b)
+static void Set_Row_Address(unsigned char a, unsigned char b)
 {
     write_c(0x75);            // Set Row Address
     write_d(a);              //   Default => 0x00 (Start Address)
@@ -103,14 +101,14 @@ void Set_Row_Address(unsigned char a, unsigned char b)
 //=========================================================
 // Reset GDRAM position
 //=========================================================
-void Home(void)
+static void Home(void)
 {
     Set_Column_Address(0x00, Max_Column);
     Set_Row_Address(0x00, Max_Row);
 }
 
 
-void Set_Remap_Format(unsigned char d)
+static void Set_Remap_Format(unsigned char d)
 {
     write_c(0xA0);            // Set Re-Map / Color Depth
     write_d(d);              //   Default => 0x40
@@ -123,21 +121,21 @@ void Set_Remap_Format(unsigned char d)
 }
 
 
-void Set_Start_Line(unsigned char d)
+static void Set_Start_Line(unsigned char d)
 {
     write_c(0xA1);            // Set Vertical Scroll by RAM
     write_d(d);              //   Default => 0x00
 }
 
 
-void Set_Display_Offset(unsigned char d)
+static void Set_Display_Offset(unsigned char d)
 {
     write_c(0xA2);            // Set Vertical Scroll by Row
     write_d(d);              //   Default => 0x60
 }
 
 
-void Set_Display_Mode(unsigned char d)
+static void Set_Display_Mode(unsigned char d)
 {
     write_c(0xA4|d);          // Set Display Mode
                         //   Default => 0xA6
@@ -148,7 +146,7 @@ void Set_Display_Mode(unsigned char d)
 }
 
 
-void Set_Function_Selection(unsigned char d)
+static void Set_Function_Selection(unsigned char d)
 {
     write_c(0xAB);            // Function Selection
     write_d(d);              //   Default => 0x01
@@ -159,21 +157,21 @@ void Set_Function_Selection(unsigned char d)
 
 
 
-void Set_Display_On()
+static void Set_Display_On()
 {
     write_c(0xAF);
 }
 
 
 
-void Set_Display_Off()
+static void Set_Display_Off()
 {
     write_c(0xAE);
 }
 
 
 
-void Set_Phase_Length(unsigned char d)
+static void Set_Phase_Length(unsigned char d)
 {
     write_c(0xB1);            // Phase 1 (Reset) & Phase 2 (Pre-Charge) Period Adjustment
     write_d(d);              //   Default => 0x82 (8 Display Clocks [Phase 2] / 5 Display Clocks [Phase 1])
@@ -182,7 +180,7 @@ void Set_Phase_Length(unsigned char d)
 }
 
 
-void Set_Display_Enhancement(unsigned char d)
+static void Set_Display_Enhancement(unsigned char d)
 {
     write_c(0xB2);      // Display Enhancement
     write_d(d);         //   Default => 0x00 (Normal)
@@ -191,7 +189,7 @@ void Set_Display_Enhancement(unsigned char d)
 }
 
 
-void Set_Display_Clock(unsigned char d)
+static void Set_Display_Clock(unsigned char d)
 {
     write_c(0xB3);   // Set Display Clock Divider / Oscillator Frequency
     write_d(d);      //   Default => 0x00
@@ -200,7 +198,7 @@ void Set_Display_Clock(unsigned char d)
 }
 
 
-void Set_VSL(unsigned char d)
+static void Set_VSL(unsigned char d)
 {
     write_c(0xB4);   // Set Segment Low Voltage
     write_d(0xA0|d); //   Default => 0xA0
@@ -211,28 +209,28 @@ void Set_VSL(unsigned char d)
 }
 
 
-void Set_GPIO(unsigned char d)
+static void Set_GPIO(unsigned char d)
 {
     write_c(0xB5);            // General Purpose IO
     write_d(d);              //   Default => 0x0A (GPIO Pins output Low Level.)
 }
 
 
-void Set_Precharge_Period(unsigned char d)
+static void Set_Precharge_Period(unsigned char d)
 {
     write_c(0xB6);            // Set Second Pre-Charge Period
     write_d(d);              //   Default => 0x08 (8 Display Clocks)
 }
 
 
-void Set_Precharge_Voltage(unsigned char d)
+static void Set_Precharge_Voltage(unsigned char d)
 {
     write_c(0xBB);            // Set Pre-Charge Voltage Level
     write_d(d);              //   Default => 0x17 (0.50*VCC)
 }
 
 
-void Set_VCOMH(unsigned char d)
+static void Set_VCOMH(unsigned char d)
 {
     write_c(0xBE);            // Set COM Deselect Voltage Level
     write_d(d);              //   Default => 0x05 (0.82*VCC)
@@ -241,7 +239,7 @@ void Set_VCOMH(unsigned char d)
 //=========================================================
 // Clear OLED GDRAM
 //========================================================= 
-void CLS(void)
+static void CLS(void)
 {
     unsigned int i;
     Home();
@@ -253,7 +251,7 @@ void CLS(void)
 
 
 
-void Set_Contrast_Color(unsigned char a, unsigned char b, unsigned char c)
+static void Set_Contrast_Color(unsigned char a, unsigned char b, unsigned char c)
 {
     write_c(0xC1);            // Set Contrast Current for Color A, B, C
     write_d(a);              //   Default => 0x8A (Color A)
@@ -262,21 +260,21 @@ void Set_Contrast_Color(unsigned char a, unsigned char b, unsigned char c)
 }
 
 
-void Set_Master_Current(unsigned char d)
+static void Set_Master_Current(unsigned char d)
 {
     write_c(0xC7);            // Master Contrast Current Control
     write_d(d);              //   Default => 0x0F (Maximum)
 }
 
 
-void Set_Multiplex_Ratio(unsigned char d)
+static void Set_Multiplex_Ratio(unsigned char d)
 {
     write_c(0xCA);            // Set Multiplex Ratio
     write_d(d);              //   Default => 0x7F (1/128 Duty)
 }
 
 
-void Set_Command_Lock(unsigned char d)
+static void Set_Command_Lock(unsigned char d)
 {
     write_c(0xFD);            // Set Command Lock
     write_d(d);              //   Default => 0x12
@@ -292,7 +290,7 @@ void Set_Command_Lock(unsigned char d)
  //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //  Gray Scale Table Setting (Full Screen)
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-void Set_Gray_Scale_Table()
+static void Set_Gray_Scale_Table()
 {
     write_c(0xB8);
     write_d(0x02);           // Gray Scale Level 1
@@ -366,12 +364,11 @@ void Set_Gray_Scale_Table()
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //  Initialization
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-void OLED_init(void)
+void OLED_init (void)
 {
     Serial1.println("Initializing platform...");
     platform_init();
     Serial1.println("Turning display on...");
-    Serial1.println("Entering loop...");
     //==============================
 
     Set_Command_Lock(0x12);         // Unlock Driver IC (0x12/0x16/0xB0/0xB1)
@@ -406,7 +403,13 @@ void OLED_init(void)
     CLS();                          // Clear Screen
     delayMicroseconds(1000);
     Set_Display_On();
-
 }
 
+void OLED_draw_rect (uint8 x, uint8 y, uint8 w, uint8 h, uint8 *data)
+{
+    Set_Column_Address(x, x+w-1);
+    Set_Row_Address(y, y+h-1);
+    write_c(0x5c);
+    write_d_stream(data, w*h*BPP);
+}
 

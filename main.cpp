@@ -303,20 +303,25 @@ setup()
 }
 
 
-static void fill_oled() {
+static uint8 images[][128] = {
+    #include "font.h"
+};
+
+static void fill_oled(int c) {
     // a test routine to fill the oled with a pattern
-    static int c = 1;
-    int x, y;
+    int x, y, ptr;
+//    uint16 data[8*8*2];
 
     // a little bit of oled
-    write_c(0x5c);	// write to ram command
-    for (y=0; y<128; y++) {
-        for (x=0; x<128; x++) {
-            uint16 val = RGB16(x+c, (x+c)*(y+c), (y+c) * (((y/32)+1)*16));
-            write_d_stream(&val, sizeof(val));
-        }
-    }
-    c++;
+//    ptr = 0;
+//    for (y=0; y<8; y++)
+//        for (x=0; x<8; x++)
+//            data[ptr++] = RGB16(x+c, (x+c)*(y+c), (y+c) * (((y/32)+1)*16));
+
+    ptr = c;
+    for (y=0; y<128; y+=8)
+        for (x=0; x<128; x+=8)
+            OLED_draw_rect(x, y, 8, 8, images[(ptr++)&0xff]);
 }
 
 static void debug_touch(void) {
@@ -525,7 +530,7 @@ main(void)
 
     setup();
 
-    fill_oled();
+    fill_oled(0);
 
     // left off: figure out power management...
     while (true) {
@@ -544,6 +549,22 @@ main(void)
                     touchService = 0;
                 }
             }
+            OLED_draw_rect(0, 48, 8, 8, images[(t+0)&0xff]);
+            OLED_draw_rect(8, 48, 8, 8, images[(t+1)&0xff]);
+            OLED_draw_rect(16, 48, 8, 8, images[(t+2)&0xff]);
+            OLED_draw_rect(24, 48, 8, 8, images[(t+3)&0xff]);
+            OLED_draw_rect(32, 48, 8, 8, images[(t+4)&0xff]);
+            OLED_draw_rect(40, 48, 8, 8, images[(t+5)&0xff]);
+            OLED_draw_rect(48, 48, 8, 8, images[(t+6)&0xff]);
+            OLED_draw_rect(56, 48, 8, 8, images[(t+7)&0xff]);
+            OLED_draw_rect(64, 48, 8, 8, images[(t+8)&0xff]);
+            OLED_draw_rect(72, 48, 8, 8, images[(t+9)&0xff]);
+            OLED_draw_rect(80, 48, 8, 8, images[(t+10)&0xff]);
+            OLED_draw_rect(88, 48, 8, 8, images[(t+11)&0xff]);
+            OLED_draw_rect(96, 48, 8, 8, images[(t+12)&0xff]);
+            OLED_draw_rect(104, 48, 8, 8, images[(t+13)&0xff]);
+            OLED_draw_rect(112, 48, 8, 8, images[(t+14)&0xff]);
+            OLED_draw_rect(120, 48, 8, 8, images[(t+15)&0xff]);
             loop(t++);
         } else {
             touchInit = 0;

@@ -132,66 +132,6 @@ void OLED_ShutDown(void);
 void OLED_TurnOn(void);
 void ClearScreen(void);
 void ClearWindow(unsigned char x1,unsigned char y1, unsigned char x2, unsigned char y2);
-
-// reset Controller
-void Reset_SSD1339(void);
-
-// write command or data
-void write_color(unsigned short out_color);
-//unsigned char read_d(void);
-
-void Draw_8x12_char(const char* _char_matrix,int x_start,int y_start,unsigned char clr);
-void Write_8x12_char(const char* _char_matrix,int x_start,int y_start,unsigned char clr);
-void Draw_8x12_string(const char* str,unsigned char len,int x_start,int y_start,unsigned char clr);
-void Write_8x12_string(const char* str,unsigned char len,int x_start,int y_start,unsigned char clr);
-void Draw_5x8_char(const char* _char_matrix,int x_start,int y_start,unsigned char clr);
-void Draw_5x8_string(const char* str,unsigned char len,int x_start,int y_start,unsigned char clr);
-
-void DrawRectangle(unsigned char xLeft, unsigned char yTop, unsigned char xRight, unsigned char yBottom, unsigned char clrOutline, unsigned char clrFill);
-//void ScreenToBuffer(unsigned char x_start,unsigned char y_start,unsigned char x_end, unsigned char y_end);
-void BufferToScreen(unsigned char x_start,unsigned char y_start,unsigned char x_end, unsigned char y_end);
-void ClearGraph(void);
-void BarGraphValues(unsigned int _values[],unsigned char num_vals, unsigned char _clr);
-void LineGraphValues(unsigned int _values[],unsigned char num_vals, unsigned char _clr);
-void DrawLine(int xLeft, int yTop, int xRight, int yBottom, unsigned char clrFill);
-void DrawLineFill(int xLeft, int yTop, int xRight, int yBottom, unsigned char clrLine, unsigned char clrFill);
-void GraphAccel(int _values[],unsigned char num_vals, unsigned char _clr);
-
-void RandomCircles(int num);
-void circle(int cx, int cy, int radius, unsigned char clroutline,unsigned char clrfill); 
-void plot8points(int cx, int cy, int x, int y, unsigned char clroutline,unsigned char clrfill);
-void plot4points(int cx, int cy, int x, int y, unsigned char clroutline,unsigned char clrfill);
-
-//=========  Menu Functions  ===========
-
-unsigned char ScrollVariables(unsigned char _dir,unsigned char _spd);
-unsigned char ScrollTimes(unsigned char _dir);
-
-void DrawTimes(unsigned char clr);
-void UpdateText(unsigned char text_row,unsigned char text_index,unsigned char clr);
-void ClearText(void);
-void DrawVariables(void);
-void ClearTimes(void);
-
-
-//=========  Pong Functions  ===========
-void DrawPaddle(unsigned char _paddle,int _y_pos);
-void DrawBall(int _x_pos,int _y_pos);
-void ClearPaddle(unsigned char _paddle,int _y_pos);
-void ClearBall(int _x_pos,int _y_pos);
-void DrawScore(int comp_score,int player_score);
-void ClearDispBuff(void);
-char CheckBallCollision(int _x_pos,int _y_pos,int _x_spd,int _y_spd);
-
-//========== Logging Functions ==========
-void ShowLogging(void);
-
-
-//========== Time Functions ==========
-void ShowTime(void);
-
-//========== Internal test Functions ==========
-void write_d_stream(void *data, unsigned int count);
-void write_c(unsigned char out_command);
+void OLED_draw_rect(uint8 x, uint8 y, uint8 w, uint8 h, uint8 *data);
 
 #endif
