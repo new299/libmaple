@@ -5,6 +5,7 @@
 #include "i2c.h"
 #include "mpr121.h"
 #include "OLED.h"
+#include "tiles.h"
 
 #define CAPTOUCH_ADDR 0x5A
 #define CAPTOUCH_I2C I2C1
@@ -549,22 +550,22 @@ main(void)
                     touchService = 0;
                 }
             }
-            OLED_draw_rect(0, 48, 8, 8, images[(t+0)&0xff]);
-            OLED_draw_rect(8, 48, 8, 8, images[(t+1)&0xff]);
-            OLED_draw_rect(16, 48, 8, 8, images[(t+2)&0xff]);
-            OLED_draw_rect(24, 48, 8, 8, images[(t+3)&0xff]);
-            OLED_draw_rect(32, 48, 8, 8, images[(t+4)&0xff]);
-            OLED_draw_rect(40, 48, 8, 8, images[(t+5)&0xff]);
-            OLED_draw_rect(48, 48, 8, 8, images[(t+6)&0xff]);
-            OLED_draw_rect(56, 48, 8, 8, images[(t+7)&0xff]);
-            OLED_draw_rect(64, 48, 8, 8, images[(t+8)&0xff]);
-            OLED_draw_rect(72, 48, 8, 8, images[(t+9)&0xff]);
-            OLED_draw_rect(80, 48, 8, 8, images[(t+10)&0xff]);
-            OLED_draw_rect(88, 48, 8, 8, images[(t+11)&0xff]);
-            OLED_draw_rect(96, 48, 8, 8, images[(t+12)&0xff]);
-            OLED_draw_rect(104, 48, 8, 8, images[(t+13)&0xff]);
-            OLED_draw_rect(112, 48, 8, 8, images[(t+14)&0xff]);
-            OLED_draw_rect(120, 48, 8, 8, images[(t+15)&0xff]);
+            tile_draw(0, 9, images[(t+0)&0xff]);
+            tile_draw(1, 9, images[(t+1)&0xff]);
+            tile_draw(2, 9, images[(t+2)&0xff]);
+            tile_draw(3, 9, images[(t+3)&0xff]);
+            tile_draw(4, 9, images[(t+4)&0xff]);
+            tile_draw(5, 9, images[(t+5)&0xff]);
+            tile_draw(6, 9, images[(t+6)&0xff]);
+            tile_draw(7, 9, images[(t+7)&0xff]);
+            tile_draw(8, 9, images[(t+8)&0xff]);
+            tile_draw(9, 9, images[(t+9)&0xff]);
+            tile_draw(10, 9, images[(t+10)&0xff]);
+            tile_draw(11, 9, images[(t+11)&0xff]);
+            tile_draw(12, 9, images[(t+12)&0xff]);
+            tile_draw(13, 9, images[(t+13)&0xff]);
+            tile_draw(14, 9, images[(t+14)&0xff]);
+            tile_draw(15, 9, images[(t+15)&0xff]);
             loop(t++);
         } else {
             touchInit = 0;
