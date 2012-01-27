@@ -443,18 +443,22 @@ loop(unsigned int t)
         case '3':
             rel_thresh++;
             tou_thresh++;
+            mpr121Write(ELE_CFG, 0x00);   // disable
             for( i = 0; i < 12; i++ ) {
                 mpr121Write(ELE0_T + i * 2, tou_thresh);
                 mpr121Write(ELE0_R + i * 2, rel_thresh);
             }
+            mpr121Write(ELE_CFG, 0x0C);   // Enables
             break;
         case '4':
             rel_thresh--;
             tou_thresh--;
+            mpr121Write(ELE_CFG, 0x00);   // disable
             for( i = 0; i < 12; i++ ) {
                 mpr121Write(ELE0_T + i * 2, tou_thresh);
                 mpr121Write(ELE0_R + i * 2, rel_thresh);
             }
+            mpr121Write(ELE_CFG, 0x0C);   // Enables
             break;
         default:
             Serial1.println("?");
