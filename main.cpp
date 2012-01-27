@@ -29,8 +29,16 @@
 
 #define BUZZ_RATE  250  // in microseconds; set to 4kHz = 250us
 
+// "WASD" cluster as defined by physical arrangement of touch switches
+#define W_KEY (1 << 3)
+#define A_KEY (1 << 6)
+#define S_KEY (1 << 4)
+#define D_KEY (1 << 2)
+#define Q_KEY (1 << 8)
+#define E_KEY (1 << 0)
+
 static struct i2c_dev *i2c;
-uint8 touchStat[2];
+uint16 touchStat;
 uint8 touchInit = 0;
 uint8 touchService = 0;
 uint16 touchList =  1 << 9 | 1 << 8 | 1 << 6 | 1 << 4 | 1 << 3 | 1 << 2 | 1 << 0;
@@ -93,22 +101,13 @@ mpr121Read(uint8 addr)
 static void
 cap_down(void)
 {
-#if 0
-    if(touchInit && !touchService) {
-        touchService = 1; // lockout re-entrant interrupts
-
-        toggleLED();
-        Serial1.print("*");
-        touchStat[0] = mpr121Read(TCH_STATL);
-        touchStat[1] = mpr121Read(TCH_STATH);
-        Serial1.println(" ");
-
-        touchService = 0;
+    if( digitalRead(MANUAL_WAKEUP_GPIO) == LOW ) {
+        touchInit = 0;
+        return; // don't initiate service if the unit is powered down
     }
-#endif
 
     if(touchInit) {
-        touchService = 1; // lockout re-entrant interrupts
+        touchService = 1; // flag that we're ready to be serviced
 
         toggleLED();
     }
@@ -174,8 +173,8 @@ setup_captouch()
     // Section D
     // Set the Filter Configuration
     // Set ESI2
-    mpr121Write(FIL_CFG, 0xE4);  // set CDT to 32us, ESI (sampling interval) to 16 ms
-    mpr121Write(AFE_CONF, 0xFF); // 34 samples, 63uA <-- will be overridden by auto-config i think
+    mpr121Write(FIL_CFG, 0x03);  // set CDT to 32us, ESI (sampling interval) to 8 ms
+    mpr121Write(AFE_CONF, 0x3F); // 6 samples, 63uA <-- will be overridden by auto-config i think
 
     // Section F
     mpr121Write(ATO_CFGU, 0xC9);  // USL = (Vdd-0.7)/vdd*256 = 0xC9 @3.3V
@@ -191,7 +190,7 @@ setup_captouch()
     //    mpr121Write(ATO_CFGT, 0x8C);    // Target = 0.9*USL = 0xB5 @1.8V
 
     // Enable Auto Config and auto Reconfig
-    mpr121Write(ATO_CFG0, 0xFB); // must match AFE_CONF setting of 34 samples, retry enabled
+    mpr121Write(ATO_CFG0, 0x3B); // must match AFE_CONF setting of 6 samples, retry enabled
 
     delay(100);
 
@@ -203,6 +202,7 @@ setup_captouch()
     //mpr121Write(ELE_CFG, 0x06);     // Enable first 6 electrodes
     delay(100);
 
+    touchInit = 1;
     return;
 }
 
@@ -325,19 +325,9 @@ static void debug_touch(void) {
     uint16 temp;
     int i;
 
-    // a little bit of touch pad
     bytes[0] = mpr121Read(TCH_STATL);
     bytes[1] = mpr121Read(TCH_STATH);
 
-#if 0
-    if(prevTouch[0] != touchStat[0] || prevTouch[1] != touchStat[1] ) {
-        bytes[0] = touchStat[0];
-        bytes[1] = touchStat[1];
-    }
-    prevTouch[0] = touchStat[0];
-    prevTouch[1] = touchStat[1];
-#endif
-    
     Serial1.print("Values: [");
     Serial1.print(bytes[0]&(1<<0)?"1":"0");
     Serial1.print(" ");
@@ -360,6 +350,16 @@ static void debug_touch(void) {
     Serial1.print("OOR: ");
     temp = mpr121Read(TCH_OORL);
     temp |= mpr121Read(TCH_OORH) << 8;
+    Serial1.print( temp, 16 );
+    Serial1.println( "\r" );
+
+    Serial1.print("FIL_CFG: ");
+    temp = mpr121Read(FIL_CFG);
+    Serial1.print( temp, 16 );
+    Serial1.println( "\r" );
+
+    Serial1.print("AFE_CONF: ");
+    temp = mpr121Read(AFE_CONF);
     Serial1.print( temp, 16 );
     Serial1.println( "\r" );
 
@@ -423,50 +423,76 @@ loop(unsigned int t)
     static int rel_thresh = 0xA;
     static int tou_thresh = 0xF;
     int i;
-    
-    if( Serial1.available() ) {
-        c = Serial1.read();
-        switch(c) {
-        case '1':
-            dbg_touch = 1;
-            break;
-        case '!':
-            dbg_touch = 0;
-            break;
-        case '2':
-            Serial1.println("Resetting MPR121");
-            mpr121Write(ELE_CFG, 0x00);
-            delay(100);
-            mpr121Write(ELE_CFG, 0x0C);   // Enables all 12 Electrodes
-            delay(100);
-            break;
-        case '3':
-            rel_thresh++;
-            tou_thresh++;
-            mpr121Write(ELE_CFG, 0x00);   // disable
-            for( i = 0; i < 12; i++ ) {
-                mpr121Write(ELE0_T + i * 2, tou_thresh);
-                mpr121Write(ELE0_R + i * 2, rel_thresh);
-            }
-            mpr121Write(ELE_CFG, 0x0C);   // Enables
-            break;
-        case '4':
-            rel_thresh--;
-            tou_thresh--;
-            mpr121Write(ELE_CFG, 0x00);   // disable
-            for( i = 0; i < 12; i++ ) {
-                mpr121Write(ELE0_T + i * 2, tou_thresh);
-                mpr121Write(ELE0_R + i * 2, rel_thresh);
-            }
-            mpr121Write(ELE_CFG, 0x0C);   // Enables
-            break;
-        default:
-            Serial1.println("?");
-        }
-    }
-    
+
     if( dbg_touch ) {
         debug_touch();
+    }
+
+    c = '\0';
+    if( Serial1.available() ) {
+        c = Serial1.read();
+    } else if( touchStat ) {
+        // pick just one of the touch states and turn it into a key press
+        if( touchStat & W_KEY )
+            c = 'W';
+        if( touchStat & A_KEY )
+            c = 'A';
+        if( touchStat & S_KEY )
+            c = 'S';
+        if( touchStat & D_KEY )
+            c = 'D';
+        if( touchStat & Q_KEY )
+            c = 'Q';
+        if( touchStat & E_KEY )
+            c = 'E';
+        
+        touchStat = 0;
+    } else {
+        return;
+    }
+    // echo the character received
+    Serial1.print( "safecast> " );
+    Serial1.write(c);
+    Serial1.println( "\r" );
+
+    switch(c) {
+    case '\0':
+        break;
+    case '1':
+        dbg_touch = 1;
+        break;
+    case '!':
+        dbg_touch = 0;
+        break;
+    case '2':
+        Serial1.println("Resetting MPR121");
+        mpr121Write(ELE_CFG, 0x00);
+        delay(100);
+        mpr121Write(ELE_CFG, 0x0C);   // Enables all 12 Electrodes
+        delay(100);
+        break;
+    case '3':
+        rel_thresh++;
+        tou_thresh++;
+        mpr121Write(ELE_CFG, 0x00);   // disable
+        for( i = 0; i < 12; i++ ) {
+            mpr121Write(ELE0_T + i * 2, tou_thresh);
+            mpr121Write(ELE0_R + i * 2, rel_thresh);
+        }
+        mpr121Write(ELE_CFG, 0x0C);   // Enables
+        break;
+    case '4':
+        rel_thresh--;
+        tou_thresh--;
+        mpr121Write(ELE_CFG, 0x00);   // disable
+        for( i = 0; i < 12; i++ ) {
+            mpr121Write(ELE0_T + i * 2, tou_thresh);
+            mpr121Write(ELE0_R + i * 2, rel_thresh);
+        }
+        mpr121Write(ELE_CFG, 0x0C);   // Enables
+        break;
+    default:
+        Serial1.println("?");
     }
     
 }
@@ -501,34 +527,28 @@ main(void)
 
     fill_oled();
 
-    setup_captouch();
-
     // left off: figure out power management...
     while (true) {
         if( digitalRead(MANUAL_WAKEUP_GPIO) == HIGH ) {
-#if 0
             //        blockingBeep();
             if( !touchInit ) {
                 Serial1.println("Initializing captouch..." );
                 setup_captouch();
                 Serial1.println("Done.");
                 delay(100);
-                touchInit =  1;
             } else {
                 if(touchService) {
-                    Serial1.print("*");
-                    touchStat[0] = mpr121Read(TCH_STATL);
-                    touchStat[1] = mpr121Read(TCH_STATH);
-                    Serial1.println(" ");
+                    touchStat = 0;
+                    touchStat = mpr121Read(TCH_STATL);
+                    touchStat |= mpr121Read(TCH_STATH) << 8;
                     touchService = 0;
                 }
             }
-#endif
             loop(t++);
         } else {
+            touchInit = 0;
             delay(500);
             Serial1.println("power is off.\n");
-            touchInit = 0;
         }
     }
 
