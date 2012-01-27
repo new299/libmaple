@@ -134,4 +134,7 @@ void ClearScreen(void);
 void ClearWindow(unsigned char x1,unsigned char y1, unsigned char x2, unsigned char y2);
 void OLED_draw_rect(uint8 x, uint8 y, uint8 w, uint8 h, uint8 *data);
 
+void OLED_blank (void);
+void OLED_unblank (void);
+
 #endif

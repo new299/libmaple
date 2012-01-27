@@ -413,3 +413,12 @@ void OLED_draw_rect (uint8 x, uint8 y, uint8 w, uint8 h, uint8 *data)
     write_d_stream(data, w*h*BPP);
 }
 
+void OLED_blank (void)
+{
+    Set_Display_Mode(0);
+}
+
+void OLED_unblank (void)
+{
+    Set_Display_Mode(2);
+}
