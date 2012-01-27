@@ -405,6 +405,18 @@ void OLED_init (void)
     Set_Display_On();
 }
 
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+//  Initialization
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+void OLED_ShutDown (void)
+{
+    Serial1.println("Turning display off...");
+    //==============================
+    Set_Display_Off();
+    digitalWrite(LCD_PWR_GPIO, 0); // cuts power to the display
+    delay(250); // give it 250ms to discharge, hard wait; prevent issues with switch bounce
+}
+
 void OLED_draw_rect (uint8 x, uint8 y, uint8 w, uint8 h, uint8 *data)
 {
     Set_Column_Address(x, x+w-1);

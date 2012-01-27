@@ -83,7 +83,13 @@ void HardwareSerial::begin(uint32 baud) {
     const stm32_pin_info *txi = &PIN_MAP[tx_pin];
     const stm32_pin_info *rxi = &PIN_MAP[rx_pin];
 
+#ifdef _BOARD_SAFECAST_H_
+    // open drain to prevent parasitic powering of serial driver
+    // requires pull-up on board, limits speed to about 115kbps
+    gpio_set_mode(txi->gpio_device, txi->gpio_bit, GPIO_AF_OUTPUT_OD); 
+#else
     gpio_set_mode(txi->gpio_device, txi->gpio_bit, GPIO_AF_OUTPUT_PP);
+#endif
     gpio_set_mode(rxi->gpio_device, rxi->gpio_bit, GPIO_INPUT_FLOATING);
 
     if (txi->timer_device != NULL) {

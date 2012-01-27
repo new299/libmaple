@@ -26,6 +26,12 @@
 #define CHG_TIMEREN_N_GPIO 37 // PC8
 #define LED_PWR_ENA_GPIO  16 // PC1 // handled in OLED platform_init
 #define WAKEUP_GPIO       2
+
+#define UART_CTS_GPIO     46 // PA12
+#define UART_RTS_GPIO     47 // PA11
+#define UART_TXD_GPIO     8 // PA10
+#define UART_RXD_GPIO     7 // PA9
+
 //#define CHARGE_GPIO 38
 
 #define BUZZ_RATE  250  // in microseconds; set to 4kHz = 250us
@@ -54,6 +60,7 @@ uint16 touchStat;
 uint8 touchInit = 0;
 uint8 touchService = 0;
 uint16 touchList =  1 << 9 | 1 << 8 | 1 << 6 | 1 << 4 | 1 << 3 | 1 << 2 | 1 << 0;
+uint8 allowBeep = 1;
 //uint16 touchList =  0x3FF;
 
 HardwareTimer buzzTimer(4);
@@ -229,6 +236,11 @@ static void
 setup_gpio(void)
 {
     // setup the inputs
+    pinMode(UART_CTS_GPIO, INPUT);
+    pinMode(UART_RTS_GPIO, INPUT);
+    pinMode(UART_TXD_GPIO, INPUT);
+    pinMode(UART_RXD_GPIO, INPUT);
+
     pinMode(MANUAL_WAKEUP_GPIO, INPUT);
     pinMode(CHG_STAT2_GPIO, INPUT);
     pinMode(CHG_STAT1_GPIO, INPUT);
@@ -260,10 +272,12 @@ setup_gpio(void)
     pinMode(CHG_TIMEREN_N_GPIO, OUTPUT);
     digitalWrite(CHG_TIMEREN_N_GPIO, 0);
 
-    // initially LED is off
+    // initially OLED is off
     pinMode(LED_PWR_ENA_GPIO, OUTPUT);
     digitalWrite(LED_PWR_ENA_GPIO, 0);
 
+    pinMode(LED_GPIO, OUTPUT);  // hard coded guess for now
+    digitalWrite(LED_GPIO, 0);
 }
 
 void handler_buzz(void) {
@@ -295,21 +309,9 @@ setup_buzzer(void)
 static void
 setup()
 {
-    //delay(1500);
     Serial1.print("In setup()...");
 
-
-    /* Set up the LED to blink  */
-    pinMode(LED_GPIO, OUTPUT);  // hard coded guess for now
-
-    setup_gpio();
-
-    setup_lcd();
-
     setup_buzzer();
-
-    /* Set up PB11 to be an IRQ that triggers cap_down */
-    attachInterrupt(CAPTOUCH_GPIO, cap_down, CHANGE);
 
     Serial1.println(" Done.\n");
 }
@@ -338,7 +340,6 @@ static void fill_oled(int c) {
 
 static void debug_touch(void) {
     uint8 bytes[2];
-    static uint8 prevTouch[2];
     uint16 temp;
     int i;
 
@@ -544,15 +545,20 @@ loop(unsigned int t)
 __attribute__((constructor)) void
 premain()
 {
+
     init();
+    setup_gpio();
+    delay(100);
     touchInit = 0;
 }
 
 
 void blockingBeep() {
-    buzzTimer.resume();
-    delay(50);
-    buzzTimer.pause();
+    if( allowBeep ) {
+        buzzTimer.resume();
+        delay(50);
+        buzzTimer.pause();
+    }
 }
 
 // isBattLow should measure ADC and determine if the battery voltage is
@@ -581,6 +587,7 @@ main(void)
     while (true) {
         switch(powerState) {
         case PWRSTATE_DOWN:
+            Serial1.println ( "Entering DOWN powerstate." );
             // disable all interrupts and just turn the system off
 
             break;
@@ -592,8 +599,12 @@ main(void)
             }
             
             if( lastPowerState != PWRSTATE_LOG ) {
+                Serial1.println ( "Entering LOG powerstate." );
                 // we are just entering, so do things like turn off beeping, LED flashing, etc.
-                // (code here)
+                OLED_ShutDown();
+                detachInterrupt(CAPTOUCH_GPIO);
+                digitalWrite(LED_GPIO, 0);
+                allowBeep = 0;
 
                 // the interrupt handler will handle logging. that's already setup.
 
@@ -621,8 +632,14 @@ main(void)
         case PWRSTATE_USER:
             // check for events from the touchscreen
             if( lastPowerState != PWRSTATE_USER ) {
+                Serial1.println ( "Entering USER powerstate." );
                 // setup anything specific to this state, i.e. turn on LED flashing and beeping on
                 // radiation events
+                setup_lcd();
+                fill_oled(0); // eventually this can go away i think.
+                /* Set up PB11 to be an IRQ that triggers cap_down */
+                attachInterrupt(CAPTOUCH_GPIO, cap_down, FALLING);
+                allowBeep = 1;
             }
             if( !touchInit ) {
                 Serial1.println("Initializing captouch..." );
@@ -657,9 +674,11 @@ main(void)
             Serial1.begin(115200);
             Serial1.println(FIRMWARE_VERSION);
             
+            Serial1.println ( "Entering BOOT powerstate." );
+
             setup();
+            allowBeep = 1;
             blockingBeep();
-            fill_oled(0);
 
             // set up Flash, etc. and interrupt handlers for logging. At this point
             // we can start receiving radiation events
@@ -674,7 +693,7 @@ main(void)
             lastPowerState = PWRSTATE_BOOT;
             break;
         default:
-            Serial1.println("Illegal power state found! Going to BOOT state." );
+            Serial1.println("Entering ERROR powerstate." );
             powerState = PWRSTATE_BOOT;
             lastPowerState = PWRSTATE_ERROR;
         }
