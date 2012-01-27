@@ -38,7 +38,18 @@
 #define Q_KEY (1 << 8)
 #define E_KEY (1 << 0)
 
+#define PWRSTATE_DOWN  0   // everything off, no logging; entered when battery is low
+#define PWRSTATE_LOG   1   // system is on, listening to geiger and recording; but no UI
+#define PWRSTATE_USER  2   // system is on, UI is fully active
+#define PWRSTATE_BOOT  3   // during boot
+#define PWRSTATE_OFF   4   // power is simply off, or cold reset
+#define PWRSTATE_ERROR 5   // an error conditions state
+
+#define FIRMWARE_VERSION "Safecast firmware v0.1 Jan 28 2012"
+
 static struct i2c_dev *i2c;
+uint8 powerState = PWRSTATE_BOOT;
+uint8 lastPowerState = PWRSTATE_OFF;
 uint16 touchStat;
 uint8 touchInit = 0;
 uint8 touchService = 0;
@@ -420,6 +431,29 @@ static void debug_touch(void) {
     delay(500);
 }
 
+void drawTiles() {
+    static int t = 0;
+    
+    tile_draw(0, 9, images[(t+0)&0xff]);
+    tile_draw(1, 9, images[(t+1)&0xff]);
+    tile_draw(2, 9, images[(t+2)&0xff]);
+    tile_draw(3, 9, images[(t+3)&0xff]);
+    tile_draw(4, 9, images[(t+4)&0xff]);
+    tile_draw(5, 9, images[(t+5)&0xff]);
+    tile_draw(6, 9, images[(t+6)&0xff]);
+    tile_draw(7, 9, images[(t+7)&0xff]);
+    tile_draw(8, 9, images[(t+8)&0xff]);
+    tile_draw(9, 9, images[(t+9)&0xff]);
+    tile_draw(10, 9, images[(t+10)&0xff]);
+    tile_draw(11, 9, images[(t+11)&0xff]);
+    tile_draw(12, 9, images[(t+12)&0xff]);
+    tile_draw(13, 9, images[(t+13)&0xff]);
+    tile_draw(14, 9, images[(t+14)&0xff]);
+    tile_draw(15, 9, images[(t+15)&0xff]);
+
+    t++;
+}
+
 /* Main loop */
 static void
 loop(unsigned int t)
@@ -434,6 +468,8 @@ loop(unsigned int t)
         debug_touch();
     }
 
+    drawTiles();
+    
     c = '\0';
     if( Serial1.available() ) {
         c = Serial1.read();
@@ -519,24 +555,75 @@ void blockingBeep() {
     buzzTimer.pause();
 }
 
+// isBattLow should measure ADC and determine if the battery voltage is
+// too low to continue operation. When that happens, we should immediately
+// power down to prevent over-discharge of the battery.
+int isBattLow() {
+    // for now, we don't check
+    return 0;
+}
+
+// this routine should set everything up for geiger pulse logging
+void setupLogging() {
+    return;
+}
+
+// this routine enters a sleep mode, with a wakeup set from the WAKEUP event from the geiger counter or switch
+void logSleep() {
+    return;
+}
+
 int
 main(void)
 {
     int t = 0;
 
-    /* Send a message out USART2  */
-    Serial1.begin(115200);
-    //delay(1500);
-    Serial1.println("Initialized.");
-
-    setup();
-
-    fill_oled(0);
-
-    // left off: figure out power management...
     while (true) {
-        if( digitalRead(MANUAL_WAKEUP_GPIO) == HIGH ) {
-            //        blockingBeep();
+        switch(powerState) {
+        case PWRSTATE_DOWN:
+            // disable all interrupts and just turn the system off
+
+            break;
+        case PWRSTATE_LOG:
+            if( isBattLow() ) {
+                lastPowerState = PWRSTATE_LOG;
+                powerState = PWRSTATE_DOWN;
+                break;
+            }
+            
+            if( lastPowerState != PWRSTATE_LOG ) {
+                // we are just entering, so do things like turn off beeping, LED flashing, etc.
+                // (code here)
+
+                // the interrupt handler will handle logging. that's already setup.
+
+                // once it's all setup, re-enter the loop so we go into the next branch
+                lastPowerState = PWRSTATE_LOG;
+                powerState = PWRSTATE_LOG;
+                break;
+            } else {
+                // first, we sleep and wait for an interrupt
+                logSleep();
+
+                // we'll wake up due to a switch or geiger event, so determine which and
+                // then re-enter the loop
+                if( digitalRead(MANUAL_WAKEUP_GPIO) == HIGH ) {
+                    powerState = PWRSTATE_USER;
+                    lastPowerState = PWRSTATE_LOG;
+                    break;
+                } else {
+                    powerState = PWRSTATE_LOG;
+                    lastPowerState = PWRSTATE_LOG;
+                    break;
+                }
+            }
+            break;
+        case PWRSTATE_USER:
+            // check for events from the touchscreen
+            if( lastPowerState != PWRSTATE_USER ) {
+                // setup anything specific to this state, i.e. turn on LED flashing and beeping on
+                // radiation events
+            }
             if( !touchInit ) {
                 Serial1.println("Initializing captouch..." );
                 setup_captouch();
@@ -550,27 +637,46 @@ main(void)
                     touchService = 0;
                 }
             }
-            tile_draw(0, 9, images[(t+0)&0xff]);
-            tile_draw(1, 9, images[(t+1)&0xff]);
-            tile_draw(2, 9, images[(t+2)&0xff]);
-            tile_draw(3, 9, images[(t+3)&0xff]);
-            tile_draw(4, 9, images[(t+4)&0xff]);
-            tile_draw(5, 9, images[(t+5)&0xff]);
-            tile_draw(6, 9, images[(t+6)&0xff]);
-            tile_draw(7, 9, images[(t+7)&0xff]);
-            tile_draw(8, 9, images[(t+8)&0xff]);
-            tile_draw(9, 9, images[(t+9)&0xff]);
-            tile_draw(10, 9, images[(t+10)&0xff]);
-            tile_draw(11, 9, images[(t+11)&0xff]);
-            tile_draw(12, 9, images[(t+12)&0xff]);
-            tile_draw(13, 9, images[(t+13)&0xff]);
-            tile_draw(14, 9, images[(t+14)&0xff]);
-            tile_draw(15, 9, images[(t+15)&0xff]);
+
+            // call the event loop
             loop(t++);
-        } else {
-            touchInit = 0;
-            delay(500);
-            Serial1.println("power is off.\n");
+
+            if( isBattLow() ) {
+                powerState = PWRSTATE_DOWN;
+                lastPowerState = PWRSTATE_USER;
+                break;
+            } else if( digitalRead(MANUAL_WAKEUP_GPIO) == HIGH ) {
+                powerState = PWRSTATE_USER;
+                lastPowerState = PWRSTATE_USER;
+            } else {
+                powerState = PWRSTATE_LOG;
+                lastPowerState = PWRSTATE_USER;
+            }
+            break;
+        case PWRSTATE_BOOT:
+            Serial1.begin(115200);
+            Serial1.println(FIRMWARE_VERSION);
+            
+            setup();
+            blockingBeep();
+            fill_oled(0);
+
+            // set up Flash, etc. and interrupt handlers for logging. At this point
+            // we can start receiving radiation events
+            setupLogging();
+
+            if( digitalRead(MANUAL_WAKEUP_GPIO) == HIGH ) {
+                powerState = PWRSTATE_USER;
+            } else {
+                powerState = PWRSTATE_LOG;
+                touchInit = 0;
+            }
+            lastPowerState = PWRSTATE_BOOT;
+            break;
+        default:
+            Serial1.println("Illegal power state found! Going to BOOT state." );
+            powerState = PWRSTATE_BOOT;
+            lastPowerState = PWRSTATE_ERROR;
         }
     }
 
