@@ -5,6 +5,7 @@
 #include "i2c.h"
 #include "mpr121.h"
 #include "OLED.h"
+#include "tiles.h"
 
 #define CAPTOUCH_ADDR 0x5A
 #define CAPTOUCH_I2C I2C1
@@ -303,20 +304,25 @@ setup()
 }
 
 
-static void fill_oled() {
+static uint8 images[][128] = {
+    #include "font.h"
+};
+
+static void fill_oled(int c) {
     // a test routine to fill the oled with a pattern
-    static int c = 1;
-    int x, y;
+    int x, y, ptr;
+//    uint16 data[8*8*2];
 
     // a little bit of oled
-    write_c(0x5c);	// write to ram command
-    for (y=0; y<128; y++) {
-        for (x=0; x<128; x++) {
-            uint16 val = RGB16(x+c, (x+c)*(y+c), (y+c) * (((y/32)+1)*16));
-            write_d_stream(&val, sizeof(val));
-        }
-    }
-    c++;
+//    ptr = 0;
+//    for (y=0; y<8; y++)
+//        for (x=0; x<8; x++)
+//            data[ptr++] = RGB16(x+c, (x+c)*(y+c), (y+c) * (((y/32)+1)*16));
+
+    ptr = c;
+    for (y=0; y<128; y+=8)
+        for (x=0; x<128; x+=8)
+            OLED_draw_rect(x, y, 8, 8, images[(ptr++)&0xff]);
 }
 
 static void debug_touch(void) {
@@ -525,7 +531,7 @@ main(void)
 
     setup();
 
-    fill_oled();
+    fill_oled(0);
 
     // left off: figure out power management...
     while (true) {
@@ -544,6 +550,22 @@ main(void)
                     touchService = 0;
                 }
             }
+            tile_draw(0, 9, images[(t+0)&0xff]);
+            tile_draw(1, 9, images[(t+1)&0xff]);
+            tile_draw(2, 9, images[(t+2)&0xff]);
+            tile_draw(3, 9, images[(t+3)&0xff]);
+            tile_draw(4, 9, images[(t+4)&0xff]);
+            tile_draw(5, 9, images[(t+5)&0xff]);
+            tile_draw(6, 9, images[(t+6)&0xff]);
+            tile_draw(7, 9, images[(t+7)&0xff]);
+            tile_draw(8, 9, images[(t+8)&0xff]);
+            tile_draw(9, 9, images[(t+9)&0xff]);
+            tile_draw(10, 9, images[(t+10)&0xff]);
+            tile_draw(11, 9, images[(t+11)&0xff]);
+            tile_draw(12, 9, images[(t+12)&0xff]);
+            tile_draw(13, 9, images[(t+13)&0xff]);
+            tile_draw(14, 9, images[(t+14)&0xff]);
+            tile_draw(15, 9, images[(t+15)&0xff]);
             loop(t++);
         } else {
             touchInit = 0;
