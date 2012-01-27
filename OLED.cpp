@@ -17,7 +17,7 @@
 static HardwareSPI *spi;
 static uint16 screen[128*128];
 
-static void
+void
 write_c(unsigned char out_command)
 {	
     digitalWrite(LCD_DC_GPIO, 0);
@@ -25,7 +25,7 @@ write_c(unsigned char out_command)
     delayMicroseconds(70);
 }
 
-static void
+void
 write_d_stream(void *data, unsigned int count)
 {
     digitalWrite(LCD_DC_GPIO, 1);
@@ -407,25 +407,6 @@ void OLED_init(void)
     delayMicroseconds(1000);
     Set_Display_On();
 
-
-    NOTE("Running...");
-    int x, y, c;
-
-    c = 1;
-    while(1) {
-        write_c(0x5c);	// write to ram command
-        for (y=0; y<128; y++) {
-            for (x=0; x<128; x++) {
-                uint16 val = RGB16(x+c, (x+c)*(y+c), (y+c) * (((y/32)+1)*16));
-                write_d_stream(&val, sizeof(val));
-            }
-        }
-        c++;
-
-        //Home();
-        //write_d_stream((void *)screen, 128*128*2);
-        //NOTE("Looping, redrawing the screen");
-    }
 }
 
 

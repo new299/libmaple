@@ -63,7 +63,7 @@
 
 /* Total number of GPIO pins that are broken out to headers and
  * intended for general use. */
-#define BOARD_NR_GPIO_PINS      44
+#define BOARD_NR_GPIO_PINS      46
 
 /* Number of pins capable of PWM output */
 #define BOARD_NR_PWM_PINS       0

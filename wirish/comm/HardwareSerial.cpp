@@ -119,3 +119,4 @@ void HardwareSerial::write(unsigned char ch) {
 void HardwareSerial::flush(void) {
     usart_reset_rx(usart_device);
 }
+

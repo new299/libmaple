@@ -123,6 +123,8 @@
 #define COMPUTER_MAX_SPD	(int)0x05
 #define BALL_MAX_SPD		(int)0x0B
 
+// convenience macros for OLED
+#define RGB16(r, b, g) ((((r)<<11L)&0x1fL) | (((g)<<5L)&0x3fL) | (((b)<<0L)&0x1fL))
 
 // inialize OLED
 void OLED_init(void);
@@ -188,5 +190,8 @@ void ShowLogging(void);
 //========== Time Functions ==========
 void ShowTime(void);
 
+//========== Internal test Functions ==========
+void write_d_stream(void *data, unsigned int count);
+void write_c(unsigned char out_command);
 
 #endif

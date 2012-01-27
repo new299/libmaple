@@ -98,6 +98,8 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {GPIOA,   NULL, NULL, 15, 0, ADCx}, /* D41/PA15 */
     {GPIOB,   NULL, NULL,  3, 0, ADCx}, /* D42/PB3  */
     {GPIOB,   NULL, NULL,  4, 0, ADCx}, /* D43/PB4  */
+    {GPIOC,   NULL, NULL, 11, 0, ADCx}, /* D44/PC11 */
+    {GPIOC,   NULL, NULL, 12, 0, ADCx}, /* D45/PC11 */
 };
 
 extern const uint8 boardPWMPins[] __FLASH__ = {
