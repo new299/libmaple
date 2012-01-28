@@ -53,6 +53,10 @@
 
 #define FIRMWARE_VERSION "Safecast firmware v0.1 Jan 28 2012"
 
+// maximum range for battery, where the value is "full" and 
+// 0 means the system should shut down
+#define BATT_RANGE 16
+
 static struct i2c_dev *i2c;
 uint8 powerState = PWRSTATE_BOOT;
 uint8 lastPowerState = PWRSTATE_OFF;
@@ -61,6 +65,7 @@ uint8 touchInit = 0;
 uint8 touchService = 0;
 uint16 touchList =  1 << 9 | 1 << 8 | 1 << 6 | 1 << 4 | 1 << 3 | 1 << 2 | 1 << 0;
 uint8 allowBeep = 1;
+uint8 dbg_batt = 0;
 //uint16 touchList =  0x3FF;
 
 HardwareTimer buzzTimer(4);
@@ -455,6 +460,56 @@ void drawTiles() {
     t++;
 }
 
+// returns a calibrated ADC code for the current battery voltage
+uint16 measureBatt() {
+    uint32 battVal;
+    uint32 vrefVal;
+    uint32 ratio;
+    uint16 retcode = 0;
+
+    uint32 cr2 = ADC1->regs->CR2;
+    cr2 |= ADC_CR2_TSEREFE; // enable reference voltage only for this measurement
+    ADC1->regs->CR2 = cr2;
+
+    digitalWrite(MEASURE_FET_GPIO, 1);
+    battVal = (uint32) analogRead(BATT_MEASURE_ADC) * 1000;
+    digitalWrite(MEASURE_FET_GPIO, 0);
+
+    vrefVal = (uint32) adc_read(ADC1, 17);
+
+    cr2 &= ~ADC_CR2_TSEREFE; // power down reference to save battery power
+    ADC1->regs->CR2 = cr2; 
+
+    // calibrate
+    // this is important because VDDA = VMCU which is proportional to battery voltage
+    // VREF is independent of battery voltage, and is 1.2V +/- 3.4%
+    // we want to indicate system should shut down at 3.1V; 4.2V is full
+    // this is a ratio from 1750 (= 4.2V) to 1292 (=3.1V)
+    ratio = battVal / vrefVal;
+    if( dbg_batt ) {
+        Serial1.print( "BattVal: " );
+        Serial1.println( battVal );
+        Serial1.print( "VrefVal: " );
+        Serial1.println( vrefVal );
+        Serial1.print( "Raw ratio: " );
+        Serial1.println( ratio );
+    }
+    if( ratio < 1292 )
+        return 0;
+    ratio = ratio - 1292; // should always be positive now due to test above
+
+    retcode = ratio / (459 / BATT_RANGE);
+
+    if( dbg_batt ) {
+        Serial1.print( "Rebased ratio: " );
+        Serial1.println( ratio );
+        Serial1.print( "Retcode: " );
+        Serial1.println( retcode );
+    }
+
+    return retcode;
+}
+
 /* Main loop */
 static void
 loop(unsigned int t)
@@ -464,6 +519,7 @@ loop(unsigned int t)
     static int rel_thresh = 0xA;
     static int tou_thresh = 0xF;
     int i;
+    uint16 temp;
 
     if( dbg_touch ) {
         debug_touch();
@@ -534,6 +590,18 @@ loop(unsigned int t)
         }
         mpr121Write(ELE_CFG, 0x0C);   // Enables
         break;
+    case '5':
+        dbg_batt = 1;
+        Serial1.println( "Turning on battery voltage debugging\n" );
+        break;
+    case '\%':
+        Serial1.println( "Turning off battery voltage debugging\n" );
+        dbg_batt = 0;
+        break;
+    case 'v':
+        temp = measureBatt();
+        Serial1.print("Battery voltage code: ");
+        Serial1.println(temp);
     default:
         Serial1.println("?");
     }
@@ -676,6 +744,7 @@ main(void)
             
             Serial1.println ( "Entering BOOT powerstate." );
 
+            dbg_batt = 0;
             setup();
             allowBeep = 1;
             blockingBeep();
