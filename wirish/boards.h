@@ -86,6 +86,23 @@ extern const uint8 boardADCPins[];
 extern const uint8 boardUsedPins[];
 
 /**
+ * @brief Power-conscious board initialization function.
+ *
+ * This function is called before main().  It ensures that the clocks
+ * and peripherals are configured properly for use with safecast.
+ * It's a custom hack but the current structure of the file doesn't
+ * allow for any clean way to expose private initialization functions.
+ *
+ * The reason for the hack is that safecast is supposed to do logging
+ * for months; in order to achieve this, the "on" duty cycle must be kept
+ * to an absolute minimum. Initialization takes a significant amount of
+ * time, and this is a brief init function that only brings up just enough
+ * stuff to do data logging.
+ *
+ */
+void short_init(void);
+
+/**
  * @brief Generic board initialization function.
  *
  * This function is called before main().  It ensures that the clocks

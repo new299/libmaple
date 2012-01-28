@@ -49,6 +49,15 @@ static void setupNVIC(void);
 static void setupADC(void);
 static void setupTimers(void);
 
+// short_init is used by safecast to do a quick power-on
+// it's special cased to shorten the "ON" duty-cycle
+void short_init(void) {
+    setupFlash();
+    setupClocks();
+    setupNVIC();
+    setupTimers();
+}
+
 void init(void) {
     setupFlash();
     setupClocks();

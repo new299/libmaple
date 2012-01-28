@@ -7,6 +7,10 @@
 #include "OLED.h"
 #include "tiles.h"
 
+// for power control support
+#include "pwr.h"
+#include "scb.h"
+
 #define CAPTOUCH_ADDR 0x5A
 #define CAPTOUCH_I2C I2C1
 #define CAPTOUCH_GPIO 30
@@ -56,6 +60,8 @@
 // maximum range for battery, where the value is "full" and 
 // 0 means the system should shut down
 #define BATT_RANGE 16
+// frequency of checking battery voltage during logging state
+#define LOG_BATT_FREQ 20 
 
 static struct i2c_dev *i2c;
 uint8 powerState = PWRSTATE_BOOT;
@@ -69,7 +75,8 @@ uint8 dbg_batt = 0;
 //uint16 touchList =  0x3FF;
 
 HardwareTimer buzzTimer(4);
-void blockingBeep();
+void blockingBeep(void);
+void powerDown(void);
 
 /*
 static void
@@ -281,7 +288,7 @@ setup_gpio(void)
     pinMode(LED_PWR_ENA_GPIO, OUTPUT);
     digitalWrite(LED_PWR_ENA_GPIO, 0);
 
-    pinMode(LED_GPIO, OUTPUT);  // hard coded guess for now
+    pinMode(LED_GPIO, OUTPUT);  
     digitalWrite(LED_GPIO, 0);
 }
 
@@ -314,11 +321,7 @@ setup_buzzer(void)
 static void
 setup()
 {
-    Serial1.print("In setup()...");
-
     setup_buzzer();
-
-    Serial1.println(" Done.\n");
 }
 
 
@@ -602,6 +605,13 @@ loop(unsigned int t)
         temp = measureBatt();
         Serial1.print("Battery voltage code: ");
         Serial1.println(temp);
+        break;
+    case '|':
+        // use for validation only because it mucks with last power state tracking info
+        Serial1.println("Forcing powerdown (use for validation only)\n" );
+        powerState = PWRSTATE_DOWN;
+        powerDown();
+        break;
     default:
         Serial1.println("?");
     }
@@ -633,8 +643,46 @@ void blockingBeep() {
 // too low to continue operation. When that happens, we should immediately
 // power down to prevent over-discharge of the battery.
 int isBattLow() {
-    // for now, we don't check
-    return 0;
+    static uint32 count = 0;
+    
+    count++;
+
+    if( powerState == PWRSTATE_LOG ) {   ////////// PWRSTATE_LOG TEST STATUS: THIS CODE IS UNTESTED
+        if( (count % LOG_BATT_FREQ) == 0 ) {
+            // only once every LOG_BATT_FREQ events do we actually measure the battery
+            // this is to reduce power consumption
+            gpio_init_all();
+            afio_init();
+            
+            // init ADC
+            rcc_set_prescaler(RCC_PRESCALER_ADC, RCC_ADCPRE_PCLK_DIV_6);
+            adc_init(ADC1);
+
+            // this is from "adcDefaultConfig" inside boards.cpp
+            // lifted and modified here so *only* ADC1 is initialized
+            // the default routine "does them all"
+            adc_set_extsel(ADC1, ADC_SWSTART);
+            adc_set_exttrig(ADC1, true);
+
+            adc_enable(ADC1);
+            adc_calibrate(ADC1);
+            adc_set_sample_rate(ADC1, ADC_SMPR_55_5);
+
+            // again, a minimal set of operations done to save power; these are lifted from
+            // setup_gpio()
+            pinMode(BATT_MEASURE_ADC, INPUT_ANALOG);
+            pinMode(MEASURE_FET_GPIO, OUTPUT);
+            digitalWrite(MEASURE_FET_GPIO, 0);
+        } else {
+            // on the fall-through just lie and assume battery isn't low. close enough.
+            return 0;
+        }
+    }
+
+    if( measureBatt() == 0 )
+        return 1;
+    else
+        return 0;
 }
 
 // this routine should set everything up for geiger pulse logging
@@ -642,9 +690,45 @@ void setupLogging() {
     return;
 }
 
-// this routine enters a sleep mode, with a wakeup set from the WAKEUP event from the geiger counter or switch
-void logSleep() {
+void standby() {
+    // clear wakup flag
+    PWR_BASE->CR |= PWR_CR_CWUF;
+    // select standby mode
+    PWR_BASE->CR |= PWR_CR_PDDS;
+    
+    // set sleepdeep in cortex system control register
+    SCB_BASE->SCR |= SCB_SCR_SLEEPDEEP;
+
+    // request wait for interrupt (in-line assembly)
+    asm volatile (
+        "WFI\n\t" // note for WFE, just replace this with WFE
+        "BX r14"
+        );
+}
+
+// this routine enter standby mode, with a wakeup set from the WAKEUP event from the geiger counter or switch
+void logStandby() {
+    // enable wake on interrupt
+    PWR_BASE->CSR |= PWR_CSR_EWUP;
+    standby();
+
     return;
+}
+
+void prepSleep() {
+    OLED_ShutDown();
+    detachInterrupt(CAPTOUCH_GPIO);
+    digitalWrite(LED_GPIO, 0);
+    allowBeep = 0;
+}
+
+void powerDown() {
+    prepSleep();
+    mpr121Write(ELE_CFG, 0x00);   // disable MPR121 scanning, in case the chip is on
+
+    // disable wake on interrupt
+    PWR_BASE->CSR &= ~PWR_CSR_EWUP;
+    standby();
 }
 
 int
@@ -654,12 +738,17 @@ main(void)
 
     while (true) {
         switch(powerState) {
-        case PWRSTATE_DOWN:
+        case PWRSTATE_DOWN:  /////////// PWRSTATE_DOWN TEST STATUS: THIS CODE FUNCTIONS BUT NEEDS VALIDATION WITH AMMETER TO CONFIRM LOW POWER OPERATION.
             Serial1.println ( "Entering DOWN powerstate." );
-            // disable all interrupts and just turn the system off
+            while(1) {
+                powerDown();
 
+                // system resets when power is plugged in no matter what, so this is sort of irrelevant
+                lastPowerState = PWRSTATE_DOWN;
+                powerState = PWRSTATE_DOWN;
+            }
             break;
-        case PWRSTATE_LOG:
+        case PWRSTATE_LOG:   ////////// PWRSTATE_LOG TEST STATUS: THIS CODE IS UNTESTED
             if( isBattLow() ) {
                 lastPowerState = PWRSTATE_LOG;
                 powerState = PWRSTATE_DOWN;
@@ -669,12 +758,7 @@ main(void)
             if( lastPowerState != PWRSTATE_LOG ) {
                 Serial1.println ( "Entering LOG powerstate." );
                 // we are just entering, so do things like turn off beeping, LED flashing, etc.
-                OLED_ShutDown();
-                detachInterrupt(CAPTOUCH_GPIO);
-                digitalWrite(LED_GPIO, 0);
-                allowBeep = 0;
-
-                // the interrupt handler will handle logging. that's already setup.
+                prepSleep();
 
                 // once it's all setup, re-enter the loop so we go into the next branch
                 lastPowerState = PWRSTATE_LOG;
@@ -682,22 +766,46 @@ main(void)
                 break;
             } else {
                 // first, we sleep and wait for an interrupt
-                logSleep();
+                logStandby();
 
+                // when we get here, we got a wakeup event
                 // we'll wake up due to a switch or geiger event, so determine which and
                 // then re-enter the loop
+                gpio_init(GPIOC); // just init the bare minimum to read the GPIO
+                pinMode(MANUAL_WAKEUP_GPIO, INPUT);
+
+                // test code
+                gpio_init(GPIOD); 
+                pinMode(LED_GPIO, OUTPUT); 
+                digitalWrite(LED_GPIO, 1);
+                // end test code
+
                 if( digitalRead(MANUAL_WAKEUP_GPIO) == HIGH ) {
+                    init();  // need to clean up everything we shut down
+                    setup_gpio();
+                    touchInit = 0;  // can't assume anything about the touch interface
+                    setup();
+
                     powerState = PWRSTATE_USER;
                     lastPowerState = PWRSTATE_LOG;
                     break;
                 } else {
+                    // this is a geiger event. for now, just make a beep and go back to sleep
+                    // eventually, we'll want to log the vent with a timestamp to flash
+                    short_init(); // special-case init for minimal operational parameters
+
+                    setup_buzzer();
+                    blockingBeep();
+
+                    // TODO: put logging infos here...
+
                     powerState = PWRSTATE_LOG;
                     lastPowerState = PWRSTATE_LOG;
                     break;
                 }
             }
             break;
-        case PWRSTATE_USER:
+        case PWRSTATE_USER:   ////////// PWRSTATE_LOG TEST STATUS: THIS CODE IS ROUTINELY USED FOR DEVELOPMENT AND IS LIGHTLY TESTED
             // check for events from the touchscreen
             if( lastPowerState != PWRSTATE_USER ) {
                 Serial1.println ( "Entering USER powerstate." );
@@ -738,7 +846,7 @@ main(void)
                 lastPowerState = PWRSTATE_USER;
             }
             break;
-        case PWRSTATE_BOOT:
+        case PWRSTATE_BOOT:   ////////// PWRSTATE_BOOT TEST STATUS: THIS CODE HAS BEEN LIGHTLY TESTED
             Serial1.begin(115200);
             Serial1.println(FIRMWARE_VERSION);
             
