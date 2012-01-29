@@ -319,6 +319,7 @@ setup()
 
 static uint8 images[][128] = {
     #include "font.h"
+    #include "alert.h"
 };
 
 static void fill_oled(int c) {
@@ -333,9 +334,39 @@ static void fill_oled(int c) {
 //            data[ptr++] = RGB16(x+c, (x+c)*(y+c), (y+c) * (((y/32)+1)*16));
 
     ptr = c;
-    for (y=0; y<128; y+=8)
-        for (x=0; x<128; x+=8)
-            OLED_draw_rect(x, y, 8, 8, images[(ptr++)&0xff]);
+    for (y=0; y<16; y++)
+        for (x=0; x<16; x++)
+            tile_set(x, y, images[256+0]);
+
+    tile_set(1, 2, images[256+7]);
+    tile_set(2, 2, images[256+6]);
+    tile_set(3, 2, images[256+6]);
+    tile_set(4, 2, images[256+6]);
+    tile_set(5, 2, images[256+6]);
+    tile_set(6, 2, images[256+6]);
+    tile_set(7, 2, images[256+6]);
+    tile_set(8, 2, images[256+6]);
+    tile_set(9, 2, images[256+6]);
+    tile_set(10, 2, images[256+6]);
+    tile_set(11, 2, images[256+6]);
+    tile_set(12, 2, images[256+6]);
+    tile_set(13, 2, images[256+6]);
+    tile_set(14, 2, images[256+8]);
+
+    tile_set(1, 3, images[256+2]);
+    tile_set(2, 3, images['h'-'H']);
+    tile_set(3, 3, images['e'-'H']);
+    tile_set(4, 3, images['l'-'H']);
+    tile_set(5, 3, images['l'-'H']);
+    tile_set(6, 3, images['o'-'H']);
+    tile_set(7, 3, images[' '-'H']);
+    tile_set(8, 3, images['t'-'H']);
+    tile_set(9, 3, images['h'-'H']);
+    tile_set(10, 3, images['e'-'H']);
+    tile_set(11, 3, images['r'-'H']);
+    tile_set(12, 3, images['e'-'H']);
+    tile_set(13, 3, images[' '-'H']);
+    tile_set(14, 3, images[256+5]);
 }
 
 static void debug_touch(void) {
@@ -432,9 +463,7 @@ static void debug_touch(void) {
     delay(500);
 }
 
-void drawTiles() {
-    static int t = 0;
-    
+static void drawTiles(int t) {
     tile_draw(0, 9, images[(t+0)&0xff]);
     tile_draw(1, 9, images[(t+1)&0xff]);
     tile_draw(2, 9, images[(t+2)&0xff]);
@@ -451,8 +480,6 @@ void drawTiles() {
     tile_draw(13, 9, images[(t+13)&0xff]);
     tile_draw(14, 9, images[(t+14)&0xff]);
     tile_draw(15, 9, images[(t+15)&0xff]);
-
-    t++;
 }
 
 /* Main loop */
@@ -469,7 +496,7 @@ loop(unsigned int t)
         debug_touch();
     }
 
-    drawTiles();
+    drawTiles(t);
     
     c = '\0';
     if( Serial1.available() ) {
