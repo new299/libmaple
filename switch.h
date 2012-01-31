@@ -1,5 +1,5 @@
-#ifndef __POWER_H__
-#define __POWER_H__
+#ifndef __SWITCH_H__
+#define __SWITCH_H__
 
 #include "device.h"
 
@@ -11,15 +11,8 @@
 #define PWRSTATE_ERROR 5   // an error conditions state
 
 
-int power_switch_state(void);
+int switch_state(struct device *dev);
 
-void power_set_debug(int level);
-int power_is_battery_low(void);
-uint16 power_battery_level(void);
-int power_set_state(int state);
-int power_get_state(void);
-int power_wfi(void);
+extern struct device back_switch;
 
-extern struct device power;
-
-#endif /* __POWER_H__ */
+#endif /* __SWITCH_H__ */

@@ -18,7 +18,7 @@
 static HardwareSPI *spi;
 
 static void
-write_c(unsigned char out_command)
+write_c(const unsigned char out_command)
 {	
     digitalWrite(LCD_DC_GPIO, 0);
     spi->write(out_command);
@@ -26,7 +26,7 @@ write_c(unsigned char out_command)
 }
 
 static void
-write_d_stream(void *data, unsigned int count)
+write_d_stream(const void *data, unsigned int count)
 {
     digitalWrite(LCD_DC_GPIO, 1);
     spi->write((uint8 *)data, count);
@@ -34,7 +34,7 @@ write_d_stream(void *data, unsigned int count)
 }
 
 static void
-write_d(unsigned char out_data)
+write_d(const unsigned char out_data)
 {
     digitalWrite(LCD_DC_GPIO, 1);
     spi->write(out_data);
@@ -364,7 +364,8 @@ static void Set_Gray_Scale_Table()
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //  Initialization
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-void oled_init(void)
+static int
+oled_init(void)
 {
     platform_init();
     //==============================
@@ -400,22 +401,24 @@ void oled_init(void)
     Set_Display_Mode(0x02);         // Normal Display Mode (0x00/0x01/0x02/0x03)
     CLS();                          // Clear Screen
     delayMicroseconds(1000);
-    Set_Display_On();
+    return 0;
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //  Initialization
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-void oled_deinit(void)
+static int
+oled_deinit(struct device *dev)
 {
     Serial1.println("Turning display off...");
     //==============================
     Set_Display_Off();
     digitalWrite(LCD_PWR_GPIO, 0); // cuts power to the display
     delay(250); // give it 250ms to discharge, hard wait; prevent issues with switch bounce
+    return 0;
 }
 
-void oled_draw_rect(uint8 x, uint8 y, uint8 w, uint8 h, uint8 *data)
+void oled_draw_rect(uint8 x, uint8 y, uint8 w, uint8 h, const uint8 *data)
 {
     Set_Column_Address(x, x+w-1);
     Set_Row_Address(y, y+h-1);
@@ -423,12 +426,28 @@ void oled_draw_rect(uint8 x, uint8 y, uint8 w, uint8 h, uint8 *data)
     write_d_stream(data, w*h*BPP);
 }
 
-void oled_blank(void)
+
+static int
+oled_suspend(struct device *dev)
 {
-    Set_Display_Mode(0);
+    Set_Display_Off();
+    return 0;
 }
 
-void oled_unblank(void)
+static int
+oled_resume(struct device *dev)
 {
-    Set_Display_Mode(2);
+    Set_Display_On();
+    return 0;
 }
+
+
+struct device oled = {
+    oled_init,
+    oled_deinit,
+    oled_suspend,
+    oled_resume,
+
+    "OLED Display",
+};
+

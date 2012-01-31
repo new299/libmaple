@@ -7,6 +7,8 @@
 #include "tiles.h"
 #include "oled.h"
 #include "log.h"
+#include "switch.h"
+#include "buzzer.h"
 
 // for power control support
 #include "pwr.h"
@@ -14,19 +16,9 @@
 
 #define LED_GPIO 25       // PD2
 
-#define UART_CTS_GPIO     46 // PA12
-#define UART_RTS_GPIO     47 // PA11
-#define UART_TXD_GPIO     8 // PA10
-#define UART_RXD_GPIO     7 // PA9
-
 #define MEASURE_FET_GPIO  45 // PC12
 #define GEIGER_PULSE_GPIO 42 // PB3
 #define GEIGER_ON_GPIO    4  // PB5
-#define BUZZER_PWM        24 // PB9
-
-//#define CHARGE_GPIO 38
-
-#define BUZZ_RATE  250  // in microseconds; set to 4kHz = 250us
 
 // "WASD" cluster as defined by physical arrangement of touch switches
 #define W_KEY (1 << 3)
@@ -41,70 +33,60 @@
 // frequency of checking battery voltage during logging state
 #define LOG_BATT_FREQ 20 
 
-uint8 allowBeep = 1;
-
-HardwareTimer buzzTimer(4);
-void blockingBeep(void);
-
 
 static void
 setup_gpio(void)
 {
-    // setup the inputs
-    pinMode(UART_CTS_GPIO, INPUT);
-    pinMode(UART_RTS_GPIO, INPUT);
-    pinMode(UART_TXD_GPIO, INPUT);
-    pinMode(UART_RXD_GPIO, INPUT);
-
     pinMode(GEIGER_PULSE_GPIO, INPUT);
-
-    // initially, un-bias the buzzer
-    pinMode(BUZZER_PWM, OUTPUT);
-    digitalWrite(BUZZER_PWM, 0);
 
     pinMode(LED_GPIO, OUTPUT);  
     digitalWrite(LED_GPIO, 0);
 }
 
-void handler_buzz(void) {
-    togglePin(BUZZER_PWM);
+static void
+on_keydown(char key)
+{
+    Serial1.print("Got keydown of key "); Serial1.println(key);
 }
 
 static void
-setup_buzzer(void)
+on_keyup(char key)
 {
-    pinMode(BUZZER_PWM, OUTPUT);
-    // pause timer during setup
-    buzzTimer.pause();
-    //setup period
-    buzzTimer.setPeriod(BUZZ_RATE);
-
-    // setup interrupt on channel 4
-    buzzTimer.setChannel4Mode(TIMER_OUTPUT_COMPARE);
-    buzzTimer.setCompare(TIMER_CH4, 1); // interrupt one count after each update
-    buzzTimer.attachCompare4Interrupt(handler_buzz);
-
-    // refresh timer count, prescale, overflow
-    buzzTimer.refresh();
-    
-    // start the timer counting
-    //    buzzTimer.resume();
+    Serial1.print("Got keyup of key "); Serial1.println(key);
 }
 
 /* Single-call setup routine */
 static void
-setup()
+setup(void)
 {
-    cap_init();
-    power_init();
-    log_init();
-
+    Serial1.println("Setting up GPIO...");
     setup_gpio();
-    setup_buzzer();
+
+    Serial1.println("Adding power...");
+    device_add(&power);
+
+    Serial1.println("Adding buzzer...");
+    device_add(&buzzer);
+
+    Serial1.println("Adding logger...");
+    device_add(&logger);
+
+    Serial1.println("Adding OLED...");
+    device_add(&oled);
+
+    Serial1.println("Adding back switch...");
+    device_add(&back_switch);
+
+    Serial1.println("Adding captouch...");
+    device_add(&captouch);
+    cap_setkeyup(on_keyup);
+    cap_setkeydown(on_keydown);
+
+    Serial1.println("Done adding devices.");
 }
 
 
-static uint8 images[][128] = {
+const static uint8 images[][128] = {
     #include "font.h"
     #include "alert.h"
 };
@@ -155,20 +137,23 @@ static void fill_oled(int c) {
     tile_set(13, 3, images['e'-'`']);
     tile_set(14, 3, images[256+5]);
 
-    tile_set(1, 4, images[256+3]);
-    tile_set(2, 4, images[256+1]);
-    tile_set(3, 4, images[256+1]);
-    tile_set(4, 4, images[256+1]);
-    tile_set(5, 4, images[256+1]);
-    tile_set(6, 4, images[256+1]);
-    tile_set(7, 4, images[256+1]);
-    tile_set(8, 4, images[256+1]);
-    tile_set(9, 4, images[256+1]);
-    tile_set(10, 4, images[256+1]);
-    tile_set(11, 4, images[256+1]);
-    tile_set(12, 4, images[256+1]);
-    tile_set(13, 4, images[256+1]);
-    tile_set(14, 4, images[256+4]);
+    tile_set(1, 4, images[256+2]);
+    tile_set(14, 4, images[256+5]);
+
+    tile_set(1, 5, images[256+3]);
+    tile_set(2, 5, images[256+1]);
+    tile_set(3, 5, images[256+1]);
+    tile_set(4, 5, images[256+1]);
+    tile_set(5, 5, images[256+1]);
+    tile_set(6, 5, images[256+1]);
+    tile_set(7, 5, images[256+1]);
+    tile_set(8, 5, images[256+1]);
+    tile_set(9, 5, images[256+1]);
+    tile_set(10, 5, images[256+1]);
+    tile_set(11, 5, images[256+1]);
+    tile_set(12, 5, images[256+1]);
+    tile_set(13, 5, images[256+1]);
+    tile_set(14, 5, images[256+4]);
 }
 
 
@@ -189,6 +174,26 @@ static void drawTiles(int t) {
     tile_draw(13, 9, images[(t+13)&0xff]);
     tile_draw(14, 9, images[(t+14)&0xff]);
     tile_draw(15, 9, images[(t+15)&0xff]);
+
+    {
+        unsigned char buf[8 * sizeof(long long)];
+        unsigned long i = 0, j, n = t;
+
+        if (n == 0) {
+            buf[0] = '0';
+            i = 1;
+        }
+        else {
+            while (n > 0) {
+                buf[i++] = n % 10;
+                n /= 10;
+            }
+        }
+        for (j=2; j<=13 && i > 0; i--,j++)
+            tile_set(j, 4, images['0' + buf[i - 1]]);
+        for (; j<=13; j++)
+            tile_set(j, 4, images[32]);
+    }
 }
 
 
@@ -303,18 +308,7 @@ loop(unsigned int t)
 __attribute__((constructor)) void
 premain()
 {
-
     init();
-    delay(100);
-}
-
-
-void blockingBeep() {
-    if( allowBeep ) {
-        buzzTimer.resume();
-        delay(50);
-        buzzTimer.pause();
-    }
 }
 
 
@@ -323,29 +317,34 @@ main(void)
 {
     int t = 0;
 
+    delay(500);
     Serial1.begin(115200);
     Serial1.println(FIRMWARE_VERSION);
             
-    Serial1.println ( "Entering BOOT powerstate." );
+    Serial1.println("Entering BOOT powerstate.");
+
 
     power_set_debug(0);
     setup();
     power_set_debug(1);
-    blockingBeep();
+    buzzer_buzz_blocking();
 
     /* Determine whether the power switch is "on" or "off" */
-    if (power_switch_state())
+    if (switch_state(&back_switch))
         power_set_state(PWRSTATE_USER);
     else
         power_set_state(PWRSTATE_LOG);
+    fill_oled(0); // eventually this can go away i think.
 
 
     /* All activity should take place in interrupts. */
-
+    Serial1.println("Entering main loop...");
     while (true) {
         if (power_get_state() == PWRSTATE_USER)
-            loop(t);
-        power_wfi();
+            loop(t++);
+        else
+            Serial1.println(".");
+        //    power_wfi();
     }
 
     #if 0

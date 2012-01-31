@@ -14,6 +14,8 @@
 #ifndef OLED_H
 #define OLED_H
 
+#include "device.h"
+
 //#define SSD1339
 #define SSD1351		// for newer screens with 1351 gdd
 
@@ -127,12 +129,9 @@
 #define RGB16(r, b, g) ((((r)<<11L)&0x1fL) | (((g)<<5L)&0x3fL) | (((b)<<0L)&0x1fL))
 
 // inialize OLED
-void oled_init(void);
-void oled_deinit(void);
 void oled_TurnOn(void);
-void oled_draw_rect(uint8 x, uint8 y, uint8 w, uint8 h, uint8 *data);
+void oled_draw_rect(uint8 x, uint8 y, uint8 w, uint8 h, const uint8 *data);
 
-void oled_blank(void);
-void oled_unblank(void);
+extern struct device oled;
 
 #endif

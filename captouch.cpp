@@ -2,27 +2,24 @@
 // USART1.
 
 #include "wirish.h"
+#include "captouch.h"
 #include "mpr121.h"
 #include "i2c.h"
+#include "switch.h"
 
 #define CAPTOUCH_ADDR 0x5A
 #define CAPTOUCH_I2C I2C1
 #define CAPTOUCH_GPIO 30
 
 // "WASD" cluster as defined by physical arrangement of touch switches
-#define W_KEY (1 << 3)
-#define A_KEY (1 << 6)
-#define S_KEY (1 << 4)
-#define D_KEY (1 << 2)
-#define Q_KEY (1 << 8)
-#define E_KEY (1 << 0)
+static const char keys[] = "E.DWS.A.Q........";
 
-#define FIRMWARE_VERSION "Safecast firmware v0.1 Jan 28 2012"
+static struct i2c_dev *i2c = CAPTOUCH_I2C;
 
-static struct i2c_dev *i2c;
-static uint8 touchInit = 0;
-static uint8 touchService = 0;
-static uint16 touchList =  1 << 9 | 1 << 8 | 1 << 6 | 1 << 4 | 1 << 3 | 1 << 2 | 1 << 0;
+
+static void (*on_keydown)(char key);
+static void (*on_keyup)(char key);
+
 
 static void
 mpr121Write(uint8 addr, uint8 value)
@@ -40,7 +37,17 @@ mpr121Write(uint8 addr, uint8 value)
     msg.xferred = 0;
     msg.data = bytes;
 
+    if (i2c->state != I2C_STATE_IDLE) {
+        Serial1.print("About to assert, i2c state is ");
+        Serial1.println(i2c->state);
+    }
     result = i2c_master_xfer(i2c, &msg, 1, 100);
+    if (i2c->state != I2C_STATE_IDLE) {
+        Serial1.print("Error: After returning, i2c state is ");
+        Serial1.print(i2c->state);
+        Serial1.print(".  Error flags: ");
+        Serial1.println(i2c->error_flags, 16);
+    }
     if (!result) {
         Serial1.print(addr, 16); Serial1.print(" -> "); Serial1.print(value); Serial1.print("\r\n");
     }
@@ -63,41 +70,179 @@ mpr121Read(uint8 addr)
     msgs[0].data   = msgs[1].data   = &byte;
     msgs[0].flags = 0;
     msgs[1].flags = I2C_MSG_READ;
+    if (i2c->state != I2C_STATE_IDLE) {
+        Serial1.print("About to barf reading, i2c state is ");
+        Serial1.println(i2c->state);
+    }
     i2c_master_xfer(i2c, msgs, 2, 100);
+    if (i2c->state != I2C_STATE_IDLE) {
+        Serial1.print("Error: After returning from a read, i2c state is ");
+        Serial1.println(i2c->state);
+    }
     return byte;
 }
 
 static void
 cap_change(void)
 {
+    static int previous_board_state;
     int board_state;
-    /*
-    if( digitalRead(MANUAL_WAKEUP_GPIO) == LOW ) {
-        touchInit = 0;
-        return; // don't initiate service if the unit is powered down
-    }
-    */
-
-    if(touchInit) {
-        touchService = 1; // flag that we're ready to be serviced
-
-        toggleLED();
-    }
+    unsigned int key;
 
     board_state = mpr121Read(TCH_STATL);
     board_state |= mpr121Read(TCH_STATH) << 8;
-    touchService = 0;
+
+    /* Go through and see what keys have changed */
+    for (key=0; key<16; key++) {
+        if ( (board_state&(1<<key)) != (previous_board_state&(1<<key))) {
+            if ( (board_state&(1<<key))) {
+                toggleLED();
+                if (on_keydown)
+                    on_keydown(keys[key]);
+            }
+            else if ( !(board_state&(1<<key)) ) {
+                toggleLED();
+                if (on_keyup)
+                    on_keyup(keys[key]);
+            }
+        }
+    }
+
+    if (previous_board_state == board_state)
+        Serial1.println("Got a cap_change event, but no change noted");
+
+    previous_board_state = board_state;
 
     return;
 }
 
+
+int
+cap_setkeydown(void (*new_keydown)(char key))
+{
+    on_keydown = new_keydown;
+    return 0;
+}
+
+int
+cap_setkeyup(void (*new_keyup)(char key))
+{
+    on_keyup = new_keyup;
+    return 0;
+}
+
+
+
 void
+cap_debug(void)
+{
+    uint8 bytes[2];
+    uint16 temp;
+    int i;
+
+    bytes[0] = mpr121Read(TCH_STATL);
+    bytes[1] = mpr121Read(TCH_STATH);
+
+    Serial1.print("Values: [");
+    Serial1.print(bytes[0]&(1<<0)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[0]&(1<<2)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[0]&(1<<3)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[0]&(1<<4)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[0]&(1<<6)?"1":"0");
+    Serial1.print(" ");
+    Serial1.print(bytes[1]&(1<<0)?"1":"0");
+
+    Serial1.print(" ");
+    Serial1.print(bytes[1]&(1<<1)?"1":"0");  // 9, a dummy electrode
+
+    //    Serial1.print("]\r");
+    Serial1.println("]\r");
+    
+    Serial1.print("OOR: ");
+    temp = mpr121Read(TCH_OORL);
+    temp |= mpr121Read(TCH_OORH) << 8;
+    Serial1.print( temp, 16 );
+    Serial1.println( "\r" );
+
+    Serial1.print("FIL_CFG: ");
+    temp = mpr121Read(FIL_CFG);
+    Serial1.print( temp, 16 );
+    Serial1.println( "\r" );
+
+    Serial1.print("AFE_CONF: ");
+    temp = mpr121Read(AFE_CONF);
+    Serial1.print( temp, 16 );
+    Serial1.println( "\r" );
+
+    for( i = 0; i < 13; i++ ) {
+        temp = 0;
+        /*
+        if( touchList & (1 << i) ) {
+            temp = mpr121Read(ELE0_T + i * 2);
+            Serial1.print( "   TT" );
+            Serial1.print( i );
+            Serial1.print( " " );
+            Serial1.print( temp, 16 );
+
+            temp = mpr121Read(ELE0_R + i * 2);
+            Serial1.print( "   RT" );
+            Serial1.print( i );
+            Serial1.print( " " );
+            Serial1.print( temp, 16 );
+            
+            temp = mpr121Read(0x5F + i);
+            Serial1.print( "   CUR" );
+            Serial1.print( i );
+            Serial1.print( " " );
+            Serial1.print( temp, 16 );
+            
+            temp = mpr121Read(0x1e + i);
+            Serial1.print( "   ELEBASE" );
+            Serial1.print( i );
+            Serial1.print( " " );
+            Serial1.print( temp << 2, 16 );
+
+            temp |= mpr121Read(0x4 + i);
+            temp |= (mpr121Read(0x5 + i) & 0x3) << 8;
+            Serial1.print( "   ELEFILT" );
+            Serial1.print( i );
+            Serial1.print( " " );
+            Serial1.print( temp, 16 );
+
+            Serial1.println( "\r" );
+            
+            temp = 0;
+        }
+        */
+    }
+    Serial1.print( "CHG TIME: ");
+    for( i = 0; i < 5; i++ ) {
+        temp = mpr121Read(0x6c + i);
+        Serial1.print( temp, 16 );
+        Serial1.print( " " );
+    }
+    Serial1.println( "\r" );
+    Serial1.println( "\r" );
+
+    delay(500);
+}
+
+
+static int
 cap_init(void)
 {
-    i2c = CAPTOUCH_I2C;
+    return 0;
+}
+
+static int
+cap_resume(struct device *dev)
+{
     i2c_init(i2c);
     i2c_master_enable(i2c, 0);
-    Serial1.print(".");
 
     mpr121Write(ELE_CFG, 0x00);   // disable electrodes for config
     delay(100);
@@ -179,131 +324,42 @@ cap_init(void)
     delay(100);
 
     pinMode(CAPTOUCH_GPIO, INPUT);  
-    attachInterrupt(CAPTOUCH_GPIO, cap_change, FALLING);
-    attachInterrupt(CAPTOUCH_GPIO, cap_change, RISING);
+    attachInterrupt(CAPTOUCH_GPIO, cap_change, CHANGE);
 
-    touchInit = 1;
-    return;
+    /* Read from the status registers to clear pending IRQs */
+    mpr121Read(TCH_STATL);
+    mpr121Read(TCH_STATH) << 8;
+
+    return 0;
 }
 
-void
-cap_deinit(void)
+static int
+cap_suspend(struct device *dev)
 {
     detachInterrupt(CAPTOUCH_GPIO);
 
     // Disable MPR121 scanning, in case the chip is on
-    mpr121Write(ELE_CFG, 0x00);
+    if (switch_state(&back_switch))
+        mpr121Write(ELE_CFG, 0x00);
 
-    return;
-}
+    /* Shut down I2C */
 
-
-int
-cap_setkeydown(void (*new_keydown)(int key))
-{
     return 0;
 }
 
-int
-cap_setkeyup(void (*new_keyup)(int key))
+static int
+cap_deinit(struct device *dev)
 {
     return 0;
 }
 
 
 
-void
-cap_debug(void)
-{
-    uint8 bytes[2];
-    uint16 temp;
-    int i;
+struct device captouch = {
+    cap_init,
+    cap_deinit,
+    cap_suspend,
+    cap_resume,
+    "Capacitive Touchpad",
+};
 
-    bytes[0] = mpr121Read(TCH_STATL);
-    bytes[1] = mpr121Read(TCH_STATH);
-
-    Serial1.print("Values: [");
-    Serial1.print(bytes[0]&(1<<0)?"1":"0");
-    Serial1.print(" ");
-    Serial1.print(bytes[0]&(1<<2)?"1":"0");
-    Serial1.print(" ");
-    Serial1.print(bytes[0]&(1<<3)?"1":"0");
-    Serial1.print(" ");
-    Serial1.print(bytes[0]&(1<<4)?"1":"0");
-    Serial1.print(" ");
-    Serial1.print(bytes[0]&(1<<6)?"1":"0");
-    Serial1.print(" ");
-    Serial1.print(bytes[1]&(1<<0)?"1":"0");
-
-    Serial1.print(" ");
-    Serial1.print(bytes[1]&(1<<1)?"1":"0");  // 9, a dummy electrode
-
-    //    Serial1.print("]\r");
-    Serial1.println("]\r");
-    
-    Serial1.print("OOR: ");
-    temp = mpr121Read(TCH_OORL);
-    temp |= mpr121Read(TCH_OORH) << 8;
-    Serial1.print( temp, 16 );
-    Serial1.println( "\r" );
-
-    Serial1.print("FIL_CFG: ");
-    temp = mpr121Read(FIL_CFG);
-    Serial1.print( temp, 16 );
-    Serial1.println( "\r" );
-
-    Serial1.print("AFE_CONF: ");
-    temp = mpr121Read(AFE_CONF);
-    Serial1.print( temp, 16 );
-    Serial1.println( "\r" );
-
-    for( i = 0; i < 13; i++ ) {
-        temp = 0;
-        if( touchList & (1 << i) ) {
-            temp = mpr121Read(ELE0_T + i * 2);
-            Serial1.print( "   TT" );
-            Serial1.print( i );
-            Serial1.print( " " );
-            Serial1.print( temp, 16 );
-
-            temp = mpr121Read(ELE0_R + i * 2);
-            Serial1.print( "   RT" );
-            Serial1.print( i );
-            Serial1.print( " " );
-            Serial1.print( temp, 16 );
-            
-            temp = mpr121Read(0x5F + i);
-            Serial1.print( "   CUR" );
-            Serial1.print( i );
-            Serial1.print( " " );
-            Serial1.print( temp, 16 );
-            
-            temp = mpr121Read(0x1e + i);
-            Serial1.print( "   ELEBASE" );
-            Serial1.print( i );
-            Serial1.print( " " );
-            Serial1.print( temp << 2, 16 );
-
-            temp |= mpr121Read(0x4 + i);
-            temp |= (mpr121Read(0x5 + i) & 0x3) << 8;
-            Serial1.print( "   ELEFILT" );
-            Serial1.print( i );
-            Serial1.print( " " );
-            Serial1.print( temp, 16 );
-
-            Serial1.println( "\r" );
-            
-            temp = 0;
-        }
-    }
-    Serial1.print( "CHG TIME: ");
-    for( i = 0; i < 5; i++ ) {
-        temp = mpr121Read(0x6c + i);
-        Serial1.print( temp, 16 );
-        Serial1.print( " " );
-    }
-    Serial1.println( "\r" );
-    Serial1.println( "\r" );
-
-    delay(500);
-}

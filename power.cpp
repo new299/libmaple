@@ -9,11 +9,6 @@
 #include "pwr.h"
 #include "scb.h"
 
-#define CAPTOUCH_ADDR 0x5A
-#define CAPTOUCH_I2C I2C1
-#define CAPTOUCH_GPIO 30
-
-#define MANUAL_WAKEUP_GPIO 18 // PC3
 #define CHG_STAT2_GPIO    44 // PC11
 #define CHG_STAT1_GPIO    26 // PC10
 #define MAGPOWER_GPIO     41 // PA15
@@ -22,17 +17,10 @@
 #define MAGSENSE_GPIO     29 // PB10
 #define LIMIT_VREF_DAC    10 // PA4 -- should be DAC eventually, but GPIO initially to tied own
 #define CHG_TIMEREN_N_GPIO 37 // PC8
-#define LED_PWR_ENA_GPIO  16 // PC1 // handled in OLED platform_init
 #define WAKEUP_GPIO       2
-
-#define UART_CTS_GPIO     46 // PA12
-#define UART_RTS_GPIO     47 // PA11
-#define UART_TXD_GPIO     8 // PA10
-#define UART_RXD_GPIO     7 // PA9
 
 //#define CHARGE_GPIO 38
 
-#define BUZZ_RATE  250  // in microseconds; set to 4kHz = 250us
 
 // "WASD" cluster as defined by physical arrangement of touch switches
 #define W_KEY (1 << 3)
@@ -49,23 +37,20 @@
 #define PWRSTATE_OFF   4   // power is simply off, or cold reset
 #define PWRSTATE_ERROR 5   // an error conditions state
 
-#define FIRMWARE_VERSION "Safecast firmware v0.1 Jan 28 2012"
-
 // maximum range for battery, where the value is "full" and 
 // 0 means the system should shut down
 #define BATT_RANGE 16
 // frequency of checking battery voltage during logging state
 #define LOG_BATT_FREQ 20 
 
-static uint8 powerState = PWRSTATE_BOOT;
+static uint8 power_state = PWRSTATE_BOOT;
 static uint8 lastPowerState = PWRSTATE_OFF;
 static uint8 dbg_batt = 0;
 
 
-int
+static int
 power_init(void)
 {
-    pinMode(MANUAL_WAKEUP_GPIO, INPUT);
     pinMode(CHG_STAT2_GPIO, INPUT);
     pinMode(CHG_STAT1_GPIO, INPUT);
     pinMode(WAKEUP_GPIO, INPUT);
@@ -82,7 +67,6 @@ power_init(void)
     digitalWrite(MAGPOWER_GPIO, 0);
 
 
-
     // as a hack, tie this low to reduce current consumption
     // until we hook it up to a proper DAC output
     pinMode(LIMIT_VREF_DAC, OUTPUT);
@@ -91,10 +75,6 @@ power_init(void)
     // initially, charge timer is enabled (active low)
     pinMode(CHG_TIMEREN_N_GPIO, OUTPUT);
     digitalWrite(CHG_TIMEREN_N_GPIO, 0);
-
-    // initially OLED is off
-    pinMode(LED_PWR_ENA_GPIO, OUTPUT);
-    digitalWrite(LED_PWR_ENA_GPIO, 0);
 
     return 0;
 }
@@ -167,7 +147,7 @@ power_is_battery_low(void)
     
     count++;
 
-    if( powerState == PWRSTATE_LOG ) {   ////////// PWRSTATE_LOG TEST STATUS: THIS CODE IS UNTESTED
+    if( power_state == PWRSTATE_LOG ) {   ////////// PWRSTATE_LOG TEST STATUS: THIS CODE IS UNTESTED
         if( (count % LOG_BATT_FREQ) == 0 ) {
             // only once every LOG_BATT_FREQ events do we actually measure the battery
             // this is to reduce power consumption
@@ -205,42 +185,53 @@ power_is_battery_low(void)
         return 0;
 }
 
-void
-power_standby(void) {
+static int
+power_suspend(struct device *dev) {
+    /* Enter "Stop" mode */
     // clear wakup flag
     PWR_BASE->CR |= PWR_CR_CWUF;
-    // select standby mode
-    PWR_BASE->CR |= PWR_CR_PDDS;
     
     // set sleepdeep in cortex system control register
     SCB_BASE->SCR |= SCB_SCR_SLEEPDEEP;
 
-    power_wfi();
+    // select standby mode
+    PWR_BASE->CR |= PWR_CR_PDDS | PWR_CR_LPDS;
+
+    return 0;
 }
 
-void
+int
 power_wfi(void)
 {
     // request wait for interrupt (in-line assembly)
     asm volatile (
         "WFI\n\t" // note for WFE, just replace this with WFE
-        "BX r14"
         );
-}
-
-int
-power_deinit(void)
-{
-    // disable wake on interrupt
-    PWR_BASE->CSR &= ~PWR_CSR_EWUP;
-    power_standby();
     return 0;
 }
 
-int
-power_switch_state(void)
+static int
+power_deinit(struct device *dev)
 {
-    return digitalRead(MANUAL_WAKEUP_GPIO) == HIGH;
+    // disable wake on interrupt
+    PWR_BASE->CSR &= ~PWR_CSR_EWUP;
+    
+    // set sleepdeep in cortex system control register
+    SCB_BASE->SCR |= SCB_SCR_SLEEPDEEP;
+
+    // select standby mode
+    PWR_BASE->CR |= PWR_CR_PDDS;
+    
+    // clear wakup flag
+    PWR_BASE->CSR &= ~PWR_CSR_EWUP;
+
+    return 0;
+}
+
+static int
+power_resume(struct device *dev)
+{
+    return 0;
 }
 
 #if 0
@@ -250,32 +241,32 @@ main(void)
     int t = 0;
 
     while (true) {
-        switch(powerState) {
+        switch(power_state) {
         case PWRSTATE_DOWN:  /////////// PWRSTATE_DOWN TEST STATUS: THIS CODE FUNCTIONS BUT NEEDS VALIDATION WITH AMMETER TO CONFIRM LOW POWER OPERATION.
-            Serial1.println ( "Entering DOWN powerstate." );
+            Serial1.println ( "Entering DOWN power_state." );
             while(1) {
                 powerDown();
 
                 // system resets when power is plugged in no matter what, so this is sort of irrelevant
                 lastPowerState = PWRSTATE_DOWN;
-                powerState = PWRSTATE_DOWN;
+                power_state = PWRSTATE_DOWN;
             }
             break;
         case PWRSTATE_LOG:   ////////// PWRSTATE_LOG TEST STATUS: THIS CODE IS UNTESTED
             if( isBattLow() ) {
                 lastPowerState = PWRSTATE_LOG;
-                powerState = PWRSTATE_DOWN;
+                power_state = PWRSTATE_DOWN;
                 break;
             }
             
             if( lastPowerState != PWRSTATE_LOG ) {
-                Serial1.println ( "Entering LOG powerstate." );
+                Serial1.println ( "Entering LOG power_state." );
                 // we are just entering, so do things like turn off beeping, LED flashing, etc.
                 prepSleep();
 
                 // once it's all setup, re-enter the loop so we go into the next branch
                 lastPowerState = PWRSTATE_LOG;
-                powerState = PWRSTATE_LOG;
+                power_state = PWRSTATE_LOG;
                 break;
             } else {
                 // first, we sleep and wait for an interrupt
@@ -299,7 +290,7 @@ main(void)
                     touchInit = 0;  // can't assume anything about the touch interface
                     setup();
 
-                    powerState = PWRSTATE_USER;
+                    power_state = PWRSTATE_USER;
                     lastPowerState = PWRSTATE_LOG;
                     break;
                 } else {
@@ -312,7 +303,7 @@ main(void)
 
                     // TODO: put logging infos here...
 
-                    powerState = PWRSTATE_LOG;
+                    power_state = PWRSTATE_LOG;
                     lastPowerState = PWRSTATE_LOG;
                     break;
                 }
@@ -321,7 +312,7 @@ main(void)
         case PWRSTATE_USER:   ////////// PWRSTATE_LOG TEST STATUS: THIS CODE IS ROUTINELY USED FOR DEVELOPMENT AND IS LIGHTLY TESTED
             // check for events from the touchscreen
             if( lastPowerState != PWRSTATE_USER ) {
-                Serial1.println ( "Entering USER powerstate." );
+                Serial1.println ( "Entering USER power_state." );
                 // setup anything specific to this state, i.e. turn on LED flashing and beeping on
                 // radiation events
                 setup_lcd();
@@ -348,14 +339,14 @@ main(void)
             loop(t++);
 
             if( isBattLow() ) {
-                powerState = PWRSTATE_DOWN;
+                power_state = PWRSTATE_DOWN;
                 lastPowerState = PWRSTATE_USER;
                 break;
             } else if( digitalRead(MANUAL_WAKEUP_GPIO) == HIGH ) {
-                powerState = PWRSTATE_USER;
+                power_state = PWRSTATE_USER;
                 lastPowerState = PWRSTATE_USER;
             } else {
-                powerState = PWRSTATE_LOG;
+                power_state = PWRSTATE_LOG;
                 lastPowerState = PWRSTATE_USER;
             }
             break;
@@ -363,7 +354,7 @@ main(void)
             Serial1.begin(115200);
             Serial1.println(FIRMWARE_VERSION);
             
-            Serial1.println ( "Entering BOOT powerstate." );
+            Serial1.println ( "Entering BOOT power_state." );
 
             dbg_batt = 0;
             setup();
@@ -375,16 +366,16 @@ main(void)
             setupLogging();
 
             if( digitalRead(MANUAL_WAKEUP_GPIO) == HIGH ) {
-                powerState = PWRSTATE_USER;
+                power_state = PWRSTATE_USER;
             } else {
-                powerState = PWRSTATE_LOG;
+                power_state = PWRSTATE_LOG;
                 touchInit = 0;
             }
             lastPowerState = PWRSTATE_BOOT;
             break;
         default:
-            Serial1.println("Entering ERROR powerstate." );
-            powerState = PWRSTATE_BOOT;
+            Serial1.println("Entering ERROR power_state." );
+            power_state = PWRSTATE_BOOT;
             lastPowerState = PWRSTATE_ERROR;
         }
     }
@@ -396,13 +387,35 @@ main(void)
 int
 power_get_state(void)
 {
-    return powerState;
+    return power_state;
 }
 
 int
 power_set_state(int state)
 {
-    lastPowerState = powerState;
-    powerState = state;
+    if (state == power_state)
+        return 0;
+
+    lastPowerState = power_state;
+    power_state = state;
+
+    if (state == PWRSTATE_USER)
+        device_resume_all();
+
+    else if (state == PWRSTATE_LOG)
+        device_pause_all();
+
+    else if (state == PWRSTATE_DOWN)
+        device_remove_all();
+
     return lastPowerState;
 }
+
+
+struct device power = {
+    power_init,
+    power_deinit,
+    power_suspend,
+    power_resume,
+    "Power Management",
+};
