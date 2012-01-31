@@ -2,34 +2,27 @@
 // USART1.
 
 #include "wirish.h"
-#include "OLED.h"
-#include "tiles.h"
 #include "captouch.h"
+#include "power.h"
+#include "tiles.h"
+#include "oled.h"
+#include "log.h"
 
 // for power control support
 #include "pwr.h"
 #include "scb.h"
 
 #define LED_GPIO 25       // PD2
-#define MANUAL_WAKEUP_GPIO 18 // PC3
-#define CHG_STAT2_GPIO    44 // PC11
-#define CHG_STAT1_GPIO    26 // PC10
-#define MAGPOWER_GPIO     41 // PA15
-#define MEASURE_FET_GPIO  45 // PC12
-#define GEIGER_PULSE_GPIO 42 // PB3
-#define GEIGER_ON_GPIO    4  // PB5
-#define BUZZER_PWM        24 // PB9
-#define BATT_MEASURE_ADC  28 // PB1
-#define MAGSENSE_GPIO     29 // PB10
-#define LIMIT_VREF_DAC    10 // PA4 -- should be DAC eventually, but GPIO initially to tied own
-#define CHG_TIMEREN_N_GPIO 37 // PC8
-#define LED_PWR_ENA_GPIO  16 // PC1 // handled in OLED platform_init
-#define WAKEUP_GPIO       2
 
 #define UART_CTS_GPIO     46 // PA12
 #define UART_RTS_GPIO     47 // PA11
 #define UART_TXD_GPIO     8 // PA10
 #define UART_RXD_GPIO     7 // PA9
+
+#define MEASURE_FET_GPIO  45 // PC12
+#define GEIGER_PULSE_GPIO 42 // PB3
+#define GEIGER_ON_GPIO    4  // PB5
+#define BUZZER_PWM        24 // PB9
 
 //#define CHARGE_GPIO 38
 
@@ -43,37 +36,15 @@
 #define Q_KEY (1 << 8)
 #define E_KEY (1 << 0)
 
-#define PWRSTATE_DOWN  0   // everything off, no logging; entered when battery is low
-#define PWRSTATE_LOG   1   // system is on, listening to geiger and recording; but no UI
-#define PWRSTATE_USER  2   // system is on, UI is fully active
-#define PWRSTATE_BOOT  3   // during boot
-#define PWRSTATE_OFF   4   // power is simply off, or cold reset
-#define PWRSTATE_ERROR 5   // an error conditions state
-
 #define FIRMWARE_VERSION "Safecast firmware v0.1 Jan 28 2012"
 
-// maximum range for battery, where the value is "full" and 
-// 0 means the system should shut down
-#define BATT_RANGE 16
 // frequency of checking battery voltage during logging state
 #define LOG_BATT_FREQ 20 
 
-uint8 powerState = PWRSTATE_BOOT;
-uint8 lastPowerState = PWRSTATE_OFF;
 uint8 allowBeep = 1;
-uint8 dbg_batt = 0;
 
 HardwareTimer buzzTimer(4);
 void blockingBeep(void);
-void powerDown(void);
-
-/*
-static void
-cap_read(void)
-{
-    return;
-}
-*/
 
 
 static void
@@ -85,39 +56,11 @@ setup_gpio(void)
     pinMode(UART_TXD_GPIO, INPUT);
     pinMode(UART_RXD_GPIO, INPUT);
 
-    pinMode(MANUAL_WAKEUP_GPIO, INPUT);
-    pinMode(CHG_STAT2_GPIO, INPUT);
-    pinMode(CHG_STAT1_GPIO, INPUT);
     pinMode(GEIGER_PULSE_GPIO, INPUT);
-    pinMode(BATT_MEASURE_ADC, INPUT_ANALOG);
-    pinMode(MAGSENSE_GPIO, INPUT);
-    pinMode(WAKEUP_GPIO, INPUT);
-
-    // setup and initialize the outputs
-    // initially, don't measure battery voltage
-    pinMode(MEASURE_FET_GPIO, OUTPUT);
-    digitalWrite(MEASURE_FET_GPIO, 0);
-
-    // initially, turn off the hall effect sensor
-    pinMode(MAGPOWER_GPIO, OUTPUT);
-    digitalWrite(MAGPOWER_GPIO, 0);
 
     // initially, un-bias the buzzer
     pinMode(BUZZER_PWM, OUTPUT);
     digitalWrite(BUZZER_PWM, 0);
-    
-    // as a hack, tie this low to reduce current consumption
-    // until we hook it up to a proper DAC output
-    pinMode(LIMIT_VREF_DAC, OUTPUT);
-    digitalWrite(LIMIT_VREF_DAC, 0);
-    
-    // initially, charge timer is enabled (active low)
-    pinMode(CHG_TIMEREN_N_GPIO, OUTPUT);
-    digitalWrite(CHG_TIMEREN_N_GPIO, 0);
-
-    // initially OLED is off
-    pinMode(LED_PWR_ENA_GPIO, OUTPUT);
-    digitalWrite(LED_PWR_ENA_GPIO, 0);
 
     pinMode(LED_GPIO, OUTPUT);  
     digitalWrite(LED_GPIO, 0);
@@ -153,6 +96,10 @@ static void
 setup()
 {
     cap_init();
+    power_init();
+    log_init();
+
+    setup_gpio();
     setup_buzzer();
 }
 
@@ -244,55 +191,6 @@ static void drawTiles(int t) {
     tile_draw(15, 9, images[(t+15)&0xff]);
 }
 
-// returns a calibrated ADC code for the current battery voltage
-uint16 measureBatt() {
-    uint32 battVal;
-    uint32 vrefVal;
-    uint32 ratio;
-    uint16 retcode = 0;
-
-    uint32 cr2 = ADC1->regs->CR2;
-    cr2 |= ADC_CR2_TSEREFE; // enable reference voltage only for this measurement
-    ADC1->regs->CR2 = cr2;
-
-    digitalWrite(MEASURE_FET_GPIO, 1);
-    battVal = (uint32) analogRead(BATT_MEASURE_ADC) * 1000;
-    digitalWrite(MEASURE_FET_GPIO, 0);
-
-    vrefVal = (uint32) adc_read(ADC1, 17);
-
-    cr2 &= ~ADC_CR2_TSEREFE; // power down reference to save battery power
-    ADC1->regs->CR2 = cr2; 
-
-    // calibrate
-    // this is important because VDDA = VMCU which is proportional to battery voltage
-    // VREF is independent of battery voltage, and is 1.2V +/- 3.4%
-    // we want to indicate system should shut down at 3.1V; 4.2V is full
-    // this is a ratio from 1750 (= 4.2V) to 1292 (=3.1V)
-    ratio = battVal / vrefVal;
-    if( dbg_batt ) {
-        Serial1.print( "BattVal: " );
-        Serial1.println( battVal );
-        Serial1.print( "VrefVal: " );
-        Serial1.println( vrefVal );
-        Serial1.print( "Raw ratio: " );
-        Serial1.println( ratio );
-    }
-    if( ratio < 1292 )
-        return 0;
-    ratio = ratio - 1292; // should always be positive now due to test above
-
-    retcode = ratio / (459 / BATT_RANGE);
-
-    if( dbg_batt ) {
-        Serial1.print( "Rebased ratio: " );
-        Serial1.println( ratio );
-        Serial1.print( "Retcode: " );
-        Serial1.println( retcode );
-    }
-
-    return retcode;
-}
 
 /* Main loop */
 static void
@@ -377,23 +275,22 @@ loop(unsigned int t)
         break;
         */
     case '5':
-        dbg_batt = 1;
+        power_set_debug(1);
         Serial1.println( "Turning on battery voltage debugging\n" );
         break;
     case '\%':
         Serial1.println( "Turning off battery voltage debugging\n" );
-        dbg_batt = 0;
+        power_set_debug(0);
         break;
     case 'v':
-        temp = measureBatt();
+        temp = power_battery_level();
         Serial1.print("Battery voltage code: ");
         Serial1.println(temp);
         break;
     case '|':
         // use for validation only because it mucks with last power state tracking info
         Serial1.println("Forcing powerdown (use for validation only)\n" );
-        powerState = PWRSTATE_DOWN;
-        powerDown();
+        power_set_state(PWRSTATE_DOWN);
         break;
     default:
         Serial1.println("?");
@@ -408,7 +305,6 @@ premain()
 {
 
     init();
-    setup_gpio();
     delay(100);
 }
 
@@ -421,103 +317,38 @@ void blockingBeep() {
     }
 }
 
-// isBattLow should measure ADC and determine if the battery voltage is
-// too low to continue operation. When that happens, we should immediately
-// power down to prevent over-discharge of the battery.
-int isBattLow() {
-    static uint32 count = 0;
-    
-    count++;
-
-    if( powerState == PWRSTATE_LOG ) {   ////////// PWRSTATE_LOG TEST STATUS: THIS CODE IS UNTESTED
-        if( (count % LOG_BATT_FREQ) == 0 ) {
-            // only once every LOG_BATT_FREQ events do we actually measure the battery
-            // this is to reduce power consumption
-            gpio_init_all();
-            afio_init();
-            
-            // init ADC
-            rcc_set_prescaler(RCC_PRESCALER_ADC, RCC_ADCPRE_PCLK_DIV_6);
-            adc_init(ADC1);
-
-            // this is from "adcDefaultConfig" inside boards.cpp
-            // lifted and modified here so *only* ADC1 is initialized
-            // the default routine "does them all"
-            adc_set_extsel(ADC1, ADC_SWSTART);
-            adc_set_exttrig(ADC1, true);
-
-            adc_enable(ADC1);
-            adc_calibrate(ADC1);
-            adc_set_sample_rate(ADC1, ADC_SMPR_55_5);
-
-            // again, a minimal set of operations done to save power; these are lifted from
-            // setup_gpio()
-            pinMode(BATT_MEASURE_ADC, INPUT_ANALOG);
-            pinMode(MEASURE_FET_GPIO, OUTPUT);
-            digitalWrite(MEASURE_FET_GPIO, 0);
-        } else {
-            // on the fall-through just lie and assume battery isn't low. close enough.
-            return 0;
-        }
-    }
-
-    if( measureBatt() <= 5 )  // normally 0, 5 for testing
-        return 1;
-    else
-        return 0;
-}
-
-// this routine should set everything up for geiger pulse logging
-void setupLogging() {
-    return;
-}
-
-void standby() {
-    // clear wakup flag
-    PWR_BASE->CR |= PWR_CR_CWUF;
-    // select standby mode
-    PWR_BASE->CR |= PWR_CR_PDDS;
-    
-    // set sleepdeep in cortex system control register
-    SCB_BASE->SCR |= SCB_SCR_SLEEPDEEP;
-
-    // request wait for interrupt (in-line assembly)
-    asm volatile (
-        "WFI\n\t" // note for WFE, just replace this with WFE
-        "BX r14"
-        );
-}
-
-// this routine enter standby mode, with a wakeup set from the WAKEUP event from the geiger counter or switch
-void logStandby() {
-    // enable wake on interrupt
-    PWR_BASE->CSR |= PWR_CSR_EWUP;
-    standby();
-
-    return;
-}
-
-void prepSleep() {
-    oled_deinit();
-    cap_deinit();
-    digitalWrite(LED_GPIO, 0);
-    allowBeep = 0;
-}
-
-void powerDown() {
-    prepSleep();
-
-    // disable wake on interrupt
-    PWR_BASE->CSR &= ~PWR_CSR_EWUP;
-    standby();
-}
 
 int
 main(void)
 {
     int t = 0;
 
+    Serial1.begin(115200);
+    Serial1.println(FIRMWARE_VERSION);
+            
+    Serial1.println ( "Entering BOOT powerstate." );
+
+    power_set_debug(0);
+    setup();
+    power_set_debug(1);
+    blockingBeep();
+
+    /* Determine whether the power switch is "on" or "off" */
+    if (power_switch_state())
+        power_set_state(PWRSTATE_USER);
+    else
+        power_set_state(PWRSTATE_LOG);
+
+
+    /* All activity should take place in interrupts. */
+
     while (true) {
+        if (power_get_state() == PWRSTATE_USER)
+            loop(t);
+        power_wfi();
+    }
+
+    #if 0
         switch(powerState) {
         case PWRSTATE_DOWN:  /////////// PWRSTATE_DOWN TEST STATUS: THIS CODE FUNCTIONS BUT NEEDS VALIDATION WITH AMMETER TO CONFIRM LOW POWER OPERATION.
             Serial1.println ( "Entering DOWN powerstate." );
@@ -525,14 +356,12 @@ main(void)
                 powerDown();
 
                 // system resets when power is plugged in no matter what, so this is sort of irrelevant
-                lastPowerState = PWRSTATE_DOWN;
-                powerState = PWRSTATE_DOWN;
+                power_set_state(PWRSTATE_DOWN);
             }
             break;
         case PWRSTATE_LOG:   ////////// PWRSTATE_LOG TEST STATUS: THIS CODE IS UNTESTED
-            if( isBattLow() ) {
-                lastPowerState = PWRSTATE_LOG;
-                powerState = PWRSTATE_DOWN;
+            if( power_is_battery_low() ) {
+                power_set_state(PWRSTATE_DOWN);
                 break;
             }
             
@@ -545,7 +374,8 @@ main(void)
                 lastPowerState = PWRSTATE_LOG;
                 powerState = PWRSTATE_LOG;
                 break;
-            } else {
+            }
+            else {
                 // first, we sleep and wait for an interrupt
                 logStandby();
 
@@ -600,7 +430,7 @@ main(void)
             // call the event loop
             loop(t++);
 
-            if( isBattLow() ) {
+            if( power_is_battery_low() ) {
                 powerState = PWRSTATE_DOWN;
                 lastPowerState = PWRSTATE_USER;
                 break;
@@ -618,9 +448,9 @@ main(void)
             
             Serial1.println ( "Entering BOOT powerstate." );
 
-            dbg_batt = 0;
+            power_set_debug(0);
             setup();
-            allowBeep = 1;
+            power_set_debug(1);
             blockingBeep();
 
             // set up Flash, etc. and interrupt handlers for logging. At this point
@@ -640,6 +470,7 @@ main(void)
             lastPowerState = PWRSTATE_ERROR;
         }
     }
+#endif
 
     return 0;
 }

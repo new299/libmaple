@@ -1,6 +1,10 @@
 # main project target
 $(BUILD_PATH)/main.o: main.cpp
 	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
+$(BUILD_PATH)/log.o: log.cpp
+	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
+$(BUILD_PATH)/power.o: power.cpp
+	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
 $(BUILD_PATH)/OLED.o: OLED.cpp
 	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
 $(BUILD_PATH)/tiles.o: tiles.cpp
@@ -16,8 +20,8 @@ library: $(BUILD_PATH)/libmaple.a
 
 .PHONY: library
 
-$(BUILD_PATH)/$(BOARD).elf: $(BUILDDIRS) $(TGT_BIN) $(BUILD_PATH)/main.o $(BUILD_PATH)/captouch.o $(BUILD_PATH)/OLED.o $(BUILD_PATH)/tiles.o
-	$(SILENT_LD) $(CXX) $(LDFLAGS) -o $@ $(TGT_BIN) $(BUILD_PATH)/main.o $(BUILD_PATH)/captouch.o $(BUILD_PATH)/OLED.o $(BUILD_PATH)/tiles.o -Wl,-Map,$(BUILD_PATH)/$(BOARD).map
+$(BUILD_PATH)/$(BOARD).elf: $(BUILDDIRS) $(TGT_BIN) $(BUILD_PATH)/main.o $(BUILD_PATH)/log.o $(BUILD_PATH)/power.o $(BUILD_PATH)/captouch.o $(BUILD_PATH)/OLED.o $(BUILD_PATH)/tiles.o
+	$(SILENT_LD) $(CXX) $(LDFLAGS) -o $@ $(TGT_BIN) $(BUILD_PATH)/main.o $(BUILD_PATH)/log.o $(BUILD_PATH)/power.o $(BUILD_PATH)/captouch.o $(BUILD_PATH)/OLED.o $(BUILD_PATH)/tiles.o -Wl,-Map,$(BUILD_PATH)/$(BOARD).map
 
 $(BUILD_PATH)/$(BOARD).bin: $(BUILD_PATH)/$(BOARD).elf
 	$(SILENT_OBJCOPY) $(OBJCOPY) -v -Obinary $(BUILD_PATH)/$(BOARD).elf $@ 1>/dev/null
