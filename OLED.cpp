@@ -364,11 +364,9 @@ static void Set_Gray_Scale_Table()
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //  Initialization
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-void OLED_init (void)
+void oled_init(void)
 {
-    Serial1.println("Initializing platform...");
     platform_init();
-    Serial1.println("Turning display on...");
     //==============================
 
     Set_Command_Lock(0x12);         // Unlock Driver IC (0x12/0x16/0xB0/0xB1)
@@ -408,7 +406,7 @@ void OLED_init (void)
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //  Initialization
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-void OLED_ShutDown (void)
+void oled_deinit(void)
 {
     Serial1.println("Turning display off...");
     //==============================
@@ -417,7 +415,7 @@ void OLED_ShutDown (void)
     delay(250); // give it 250ms to discharge, hard wait; prevent issues with switch bounce
 }
 
-void OLED_draw_rect (uint8 x, uint8 y, uint8 w, uint8 h, uint8 *data)
+void oled_draw_rect(uint8 x, uint8 y, uint8 w, uint8 h, uint8 *data)
 {
     Set_Column_Address(x, x+w-1);
     Set_Row_Address(y, y+h-1);
@@ -425,12 +423,12 @@ void OLED_draw_rect (uint8 x, uint8 y, uint8 w, uint8 h, uint8 *data)
     write_d_stream(data, w*h*BPP);
 }
 
-void OLED_blank (void)
+void oled_blank(void)
 {
     Set_Display_Mode(0);
 }
 
-void OLED_unblank (void)
+void oled_unblank(void)
 {
     Set_Display_Mode(2);
 }

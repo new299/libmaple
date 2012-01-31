@@ -127,14 +127,12 @@
 #define RGB16(r, b, g) ((((r)<<11L)&0x1fL) | (((g)<<5L)&0x3fL) | (((b)<<0L)&0x1fL))
 
 // inialize OLED
-void OLED_init(void);
-void OLED_ShutDown(void);
-void OLED_TurnOn(void);
-void ClearScreen(void);
-void ClearWindow(unsigned char x1,unsigned char y1, unsigned char x2, unsigned char y2);
-void OLED_draw_rect(uint8 x, uint8 y, uint8 w, uint8 h, uint8 *data);
+void oled_init(void);
+void oled_deinit(void);
+void oled_TurnOn(void);
+void oled_draw_rect(uint8 x, uint8 y, uint8 w, uint8 h, uint8 *data);
 
-void OLED_blank (void);
-void OLED_unblank (void);
+void oled_blank(void);
+void oled_unblank(void);
 
 #endif
