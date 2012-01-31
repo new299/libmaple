@@ -354,19 +354,34 @@ static void fill_oled(int c) {
     tile_set(14, 2, images[256+8]);
 
     tile_set(1, 3, images[256+2]);
-    tile_set(2, 3, images['h'-'H']);
-    tile_set(3, 3, images['e'-'H']);
-    tile_set(4, 3, images['l'-'H']);
-    tile_set(5, 3, images['l'-'H']);
-    tile_set(6, 3, images['o'-'H']);
-    tile_set(7, 3, images[' '-'H']);
-    tile_set(8, 3, images['t'-'H']);
-    tile_set(9, 3, images['h'-'H']);
-    tile_set(10, 3, images['e'-'H']);
-    tile_set(11, 3, images['r'-'H']);
-    tile_set(12, 3, images['e'-'H']);
-    tile_set(13, 3, images[' '-'H']);
+    tile_set(2, 3, images[122]);
+    tile_set(3, 3, images['h'-'`'+64]);
+    tile_set(4, 3, images['e'-'`']);
+    tile_set(5, 3, images['l'-'`']);
+    tile_set(6, 3, images['l'-'`']);
+    tile_set(7, 3, images['o'-'`']);
+    tile_set(8, 3, images[32]);
+    tile_set(9, 3, images['t'-'`']);
+    tile_set(10, 3, images['h'-'`']);
+    tile_set(11, 3, images['e'-'`']);
+    tile_set(12, 3, images['r'-'`']);
+    tile_set(13, 3, images['e'-'`']);
     tile_set(14, 3, images[256+5]);
+
+    tile_set(1, 4, images[256+3]);
+    tile_set(2, 4, images[256+1]);
+    tile_set(3, 4, images[256+1]);
+    tile_set(4, 4, images[256+1]);
+    tile_set(5, 4, images[256+1]);
+    tile_set(6, 4, images[256+1]);
+    tile_set(7, 4, images[256+1]);
+    tile_set(8, 4, images[256+1]);
+    tile_set(9, 4, images[256+1]);
+    tile_set(10, 4, images[256+1]);
+    tile_set(11, 4, images[256+1]);
+    tile_set(12, 4, images[256+1]);
+    tile_set(13, 4, images[256+1]);
+    tile_set(14, 4, images[256+4]);
 }
 
 static void debug_touch(void) {
