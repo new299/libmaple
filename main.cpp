@@ -721,7 +721,7 @@ int isBattLow() {
         }
     }
 
-    if( measureBatt() == 0 )
+    if( measureBatt() <= 5 )  // normally 0, 5 for testing
         return 1;
     else
         return 0;
