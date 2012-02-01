@@ -359,6 +359,14 @@ static void Set_Gray_Scale_Table()
 }
 
 
+void oled_draw_rect(uint8 x, uint8 y, uint8 w, uint8 h, const uint8 *data)
+{
+    Set_Column_Address(x, x+w-1);
+    Set_Row_Address(y, y+h-1);
+    write_c(0x5c);
+    write_d_stream(data, w*h*BPP);
+}
+
 
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -417,15 +425,6 @@ oled_deinit(struct device *dev)
     delay(250); // give it 250ms to discharge, hard wait; prevent issues with switch bounce
     return 0;
 }
-
-void oled_draw_rect(uint8 x, uint8 y, uint8 w, uint8 h, const uint8 *data)
-{
-    Set_Column_Address(x, x+w-1);
-    Set_Row_Address(y, y+h-1);
-    write_c(0x5c);
-    write_d_stream(data, w*h*BPP);
-}
-
 
 static int
 oled_suspend(struct device *dev)
