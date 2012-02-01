@@ -17,6 +17,8 @@ $(BUILD_PATH)/switch.o: switch.cpp
 	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
 $(BUILD_PATH)/buzzer.o: buzzer.cpp
 	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
+$(BUILD_PATH)/battery.o: battery.cpp
+	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
 
 $(BUILD_PATH)/libmaple.a: $(BUILDDIRS) $(TGT_BIN)
 	- rm -f $@
@@ -26,8 +28,29 @@ library: $(BUILD_PATH)/libmaple.a
 
 .PHONY: library
 
-$(BUILD_PATH)/$(BOARD).elf: $(BUILDDIRS) $(TGT_BIN) $(BUILD_PATH)/main.o $(BUILD_PATH)/buzzer.o $(BUILD_PATH)/switch.o $(BUILD_PATH)/device.o $(BUILD_PATH)/log.o $(BUILD_PATH)/power.o $(BUILD_PATH)/captouch.o $(BUILD_PATH)/OLED.o $(BUILD_PATH)/tiles.o
-	$(SILENT_LD) $(CXX) $(LDFLAGS) -o $@ $(TGT_BIN) $(BUILD_PATH)/main.o $(BUILD_PATH)/buzzer.o $(BUILD_PATH)/switch.o $(BUILD_PATH)/device.o $(BUILD_PATH)/log.o $(BUILD_PATH)/power.o $(BUILD_PATH)/captouch.o $(BUILD_PATH)/OLED.o $(BUILD_PATH)/tiles.o -Wl,-Map,$(BUILD_PATH)/$(BOARD).map
+$(BUILD_PATH)/$(BOARD).elf: $(BUILDDIRS) $(TGT_BIN) \
+        $(BUILD_PATH)/main.o \
+        $(BUILD_PATH)/battery.o \
+        $(BUILD_PATH)/buzzer.o \
+        $(BUILD_PATH)/switch.o \
+        $(BUILD_PATH)/device.o \
+        $(BUILD_PATH)/log.o \
+        $(BUILD_PATH)/power.o \
+        $(BUILD_PATH)/captouch.o \
+        $(BUILD_PATH)/OLED.o \
+        $(BUILD_PATH)/tiles.o
+	$(SILENT_LD) $(CXX) $(LDFLAGS) -o $@ $(TGT_BIN) \
+        $(BUILD_PATH)/main.o \
+        $(BUILD_PATH)/battery.o \
+        $(BUILD_PATH)/buzzer.o \
+        $(BUILD_PATH)/switch.o \
+        $(BUILD_PATH)/device.o \
+        $(BUILD_PATH)/log.o \
+        $(BUILD_PATH)/power.o \
+        $(BUILD_PATH)/captouch.o \
+        $(BUILD_PATH)/OLED.o \
+        $(BUILD_PATH)/tiles.o \
+        -Wl,-Map,$(BUILD_PATH)/$(BOARD).map
 
 $(BUILD_PATH)/$(BOARD).bin: $(BUILD_PATH)/$(BOARD).elf
 	$(SILENT_OBJCOPY) $(OBJCOPY) -v -Obinary $(BUILD_PATH)/$(BOARD).elf $@ 1>/dev/null
