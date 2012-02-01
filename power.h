@@ -14,8 +14,6 @@
 int power_switch_state(void);
 
 void power_set_debug(int level);
-int power_is_battery_low(void);
-uint16 power_battery_level(void);
 int power_set_state(int state);
 int power_get_state(void);
 int power_wfi(void);
