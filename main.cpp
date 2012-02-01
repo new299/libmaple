@@ -9,6 +9,7 @@
 #include "log.h"
 #include "switch.h"
 #include "buzzer.h"
+#include "battery.h"
 
 // for power control support
 #include "pwr.h"
@@ -16,22 +17,15 @@
 
 #define LED_GPIO 25       // PD2
 
-#define MEASURE_FET_GPIO  45 // PC12
 #define GEIGER_PULSE_GPIO 42 // PB3
 #define GEIGER_ON_GPIO    4  // PB5
 
-// "WASD" cluster as defined by physical arrangement of touch switches
-#define W_KEY (1 << 3)
-#define A_KEY (1 << 6)
-#define S_KEY (1 << 4)
-#define D_KEY (1 << 2)
-#define Q_KEY (1 << 8)
-#define E_KEY (1 << 0)
-
 #define FIRMWARE_VERSION "Safecast firmware v0.1 Jan 28 2012"
 
-// frequency of checking battery voltage during logging state
-#define LOG_BATT_FREQ 20 
+const static uint8 images[][128] = {
+    #include "font.h"
+    #include "alert.h"
+};
 
 
 static void
@@ -47,12 +41,38 @@ static void
 on_keydown(char key)
 {
     Serial1.print("Got keydown of key "); Serial1.println(key);
+
+    if (key == 'Q')
+        tile_set(6, 5, images['q'-'`'+64]);
+    else if (key == 'W')
+        tile_set(7, 5, images['w'-'`'+64]);
+    else if (key == 'E')
+        tile_set(8, 5, images['e'-'`'+64]);
+
+    else if (key == 'A')
+        tile_set(6, 6, images['a'-'`'+64]);
+    else if (key == 'S')
+        tile_set(7, 6, images['s'-'`'+64]);
+    else if (key == 'D')
+        tile_set(8, 6, images['d'-'`'+64]);
 }
 
 static void
 on_keyup(char key)
 {
     Serial1.print("Got keyup of key "); Serial1.println(key);
+    if (key == 'Q')
+        tile_set(6, 5, images[32]);
+    else if (key == 'W')
+        tile_set(7, 5, images[32]);
+    else if (key == 'E')
+        tile_set(8, 5, images[32]);
+    else if (key == 'A')
+        tile_set(6, 6, images[32]);
+    else if (key == 'S')
+        tile_set(7, 6, images[32]);
+    else if (key == 'D')
+        tile_set(8, 6, images[32]);
 }
 
 /* Single-call setup routine */
@@ -64,6 +84,9 @@ setup(void)
 
     Serial1.println("Adding power...");
     device_add(&power);
+
+    Serial1.println("Adding battery...");
+    device_add(&battery);
 
     Serial1.println("Adding buzzer...");
     device_add(&buzzer);
@@ -85,11 +108,6 @@ setup(void)
     Serial1.println("Done adding devices.");
 }
 
-
-const static uint8 images[][128] = {
-    #include "font.h"
-    #include "alert.h"
-};
 
 static void fill_oled(int c) {
     // a test routine to fill the oled with a pattern
@@ -140,40 +158,70 @@ static void fill_oled(int c) {
     tile_set(1, 4, images[256+2]);
     tile_set(14, 4, images[256+5]);
 
-    tile_set(1, 5, images[256+3]);
-    tile_set(2, 5, images[256+1]);
-    tile_set(3, 5, images[256+1]);
-    tile_set(4, 5, images[256+1]);
-    tile_set(5, 5, images[256+1]);
-    tile_set(6, 5, images[256+1]);
-    tile_set(7, 5, images[256+1]);
-    tile_set(8, 5, images[256+1]);
-    tile_set(9, 5, images[256+1]);
-    tile_set(10, 5, images[256+1]);
-    tile_set(11, 5, images[256+1]);
-    tile_set(12, 5, images[256+1]);
-    tile_set(13, 5, images[256+1]);
-    tile_set(14, 5, images[256+4]);
+    tile_set(1, 5, images[256+2]);
+    tile_set(2, 5, images[32]);
+    tile_set(3, 5, images[32]);
+    tile_set(4, 5, images[32]);
+    tile_set(5, 5, images[32]);
+    tile_set(6, 5, images[32]);
+    tile_set(7, 5, images[32]);
+    tile_set(8, 5, images[32]);
+    tile_set(9, 5, images[32]);
+    tile_set(10, 5, images[32]);
+    tile_set(11, 5, images[32]);
+    tile_set(12, 5, images[32]);
+    tile_set(13, 5, images[32]);
+    tile_set(14, 5, images[256+5]);
+
+    tile_set(1, 6, images[256+2]);
+    tile_set(2, 6, images[32]);
+    tile_set(3, 6, images[32]);
+    tile_set(4, 6, images[32]);
+    tile_set(5, 6, images[32]);
+    tile_set(6, 6, images[32]);
+    tile_set(7, 6, images[32]);
+    tile_set(8, 6, images[32]);
+    tile_set(9, 6, images[32]);
+    tile_set(10, 6, images[32]);
+    tile_set(11, 6, images[32]);
+    tile_set(12, 6, images[32]);
+    tile_set(13, 6, images[32]);
+    tile_set(14, 6, images[256+5]);
+
+    tile_set(1, 7, images[256+3]);
+    tile_set(2, 7, images[256+1]);
+    tile_set(3, 7, images[256+1]);
+    tile_set(4, 7, images[256+1]);
+    tile_set(5, 7, images[256+1]);
+    tile_set(6, 7, images[256+1]);
+    tile_set(7, 7, images[256+1]);
+    tile_set(8, 7, images[256+1]);
+    tile_set(9, 7, images[256+1]);
+    tile_set(10, 7, images[256+1]);
+    tile_set(11, 7, images[256+1]);
+    tile_set(12, 7, images[256+1]);
+    tile_set(13, 7, images[256+1]);
+    tile_set(14, 7, images[256+4]);
 }
 
 
 static void drawTiles(int t) {
-    tile_draw(0, 9, images[(t+0)&0xff]);
-    tile_draw(1, 9, images[(t+1)&0xff]);
-    tile_draw(2, 9, images[(t+2)&0xff]);
-    tile_draw(3, 9, images[(t+3)&0xff]);
-    tile_draw(4, 9, images[(t+4)&0xff]);
-    tile_draw(5, 9, images[(t+5)&0xff]);
-    tile_draw(6, 9, images[(t+6)&0xff]);
-    tile_draw(7, 9, images[(t+7)&0xff]);
-    tile_draw(8, 9, images[(t+8)&0xff]);
-    tile_draw(9, 9, images[(t+9)&0xff]);
-    tile_draw(10, 9, images[(t+10)&0xff]);
-    tile_draw(11, 9, images[(t+11)&0xff]);
-    tile_draw(12, 9, images[(t+12)&0xff]);
-    tile_draw(13, 9, images[(t+13)&0xff]);
-    tile_draw(14, 9, images[(t+14)&0xff]);
-    tile_draw(15, 9, images[(t+15)&0xff]);
+    tile_draw(0, 10, images[(t+0)&0xff]);
+    tile_draw(1, 10, images[(t+1)&0xff]);
+    tile_draw(2, 10, images[(t+2)&0xff]);
+    tile_draw(3, 10, images[(t+3)&0xff]);
+    tile_draw(4, 10, images[(t+4)&0xff]);
+    tile_draw(5, 10, images[(t+5)&0xff]);
+    tile_draw(6, 10, images[(t+6)&0xff]);
+    tile_draw(7, 10, images[(t+7)&0xff]);
+    tile_draw(8, 10, images[(t+8)&0xff]);
+    tile_draw(9, 10, images[(t+9)&0xff]);
+    tile_draw(10, 10, images[(t+10)&0xff]);
+    tile_draw(11, 10, images[(t+11)&0xff]);
+    tile_draw(12, 10, images[(t+12)&0xff]);
+    tile_draw(13, 10, images[(t+13)&0xff]);
+    tile_draw(14, 10, images[(t+14)&0xff]);
+    tile_draw(15, 10, images[(t+15)&0xff]);
 
     {
         unsigned char buf[8 * sizeof(long long)];
@@ -288,7 +336,7 @@ loop(unsigned int t)
         power_set_debug(0);
         break;
     case 'v':
-        temp = power_battery_level();
+        temp = battery_level();
         Serial1.print("Battery voltage code: ");
         Serial1.println(temp);
         break;
