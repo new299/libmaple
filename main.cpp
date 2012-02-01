@@ -5,7 +5,7 @@
 #include "captouch.h"
 #include "power.h"
 #include "tiles.h"
-#include "oled.h"
+#include "OLED.h"
 #include "log.h"
 #include "switch.h"
 #include "buzzer.h"
@@ -82,6 +82,7 @@ setup(void)
     Serial1.println("Setting up GPIO...");
     setup_gpio();
 
+    // add devices. Devices are called in reverse order during susped, and forward order in resume
     Serial1.println("Adding power...");
     device_add(&power);
 
@@ -364,8 +365,7 @@ int
 main(void)
 {
     int t = 0;
-
-    delay(500);
+    
     Serial1.begin(115200);
     Serial1.println(FIRMWARE_VERSION);
             
@@ -376,6 +376,8 @@ main(void)
     setup();
     power_set_debug(1);
     buzzer_buzz_blocking();
+
+    battery_set_debug(1);
 
     /* Determine whether the power switch is "on" or "off" */
     if (switch_state(&back_switch))
@@ -392,7 +394,8 @@ main(void)
             loop(t++);
         else
             Serial1.println(".");
-        //    power_wfi();
+
+        power_sleep(); // just stop clock to CPU core, don't shut down peripherals
     }
 
     #if 0

@@ -17,6 +17,8 @@ void power_set_debug(int level);
 int power_set_state(int state);
 int power_get_state(void);
 int power_wfi(void);
+int power_wfe(void);
+int power_sleep(void);
 
 extern struct device power;
 

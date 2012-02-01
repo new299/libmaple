@@ -4,6 +4,7 @@
 #include "device.h"
 
 
+void battery_set_debug(int level);
 int BATTERY_state(struct device *dev);
 int battery_is_low(void);
 uint16 battery_level(void);

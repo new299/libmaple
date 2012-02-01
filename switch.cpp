@@ -17,6 +17,9 @@
 static void
 switch_change(void)
 {
+    //    init();
+    //    Serial1.begin(115200);
+    
     delay(10); /* Debounce */
     if (switch_state(&back_switch)) {
         Serial1.println("Powering board on!");

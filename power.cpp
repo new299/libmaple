@@ -56,9 +56,24 @@ power_set_debug(int level)
     debug = level;
 }
 
+int power_sleep() {
+    // sleep will wait not for pending ISRs to exit, immediate sleep
+    SCB_BASE->SCR &= ~SCB_SCR_SLEEPONEXIT;
+
+    power_wfe(); // allow any event to wake up the CPU from sleep
+    return 0;
+}
 
 static int
-power_suspend(struct device *dev) {
+power_stop(struct device *dev) { 
+    Serial1.println ("Stopping CPU.\n" ); // for debug only
+
+    // enable wake on interrupt
+    PWR_BASE->CSR |= PWR_CSR_EWUP;
+
+    // stop will wait for ISRs to exit
+    SCB_BASE->SCR |= SCB_SCR_SLEEPONEXIT;
+    
     /* Enter "Stop" mode */
     // clear wakup flag
     PWR_BASE->CR |= PWR_CR_CWUF;
@@ -66,9 +81,32 @@ power_suspend(struct device *dev) {
     // set sleepdeep in cortex system control register
     SCB_BASE->SCR |= SCB_SCR_SLEEPDEEP;
 
-    // select standby mode
+    // select stop mode
     PWR_BASE->CR |= PWR_CR_PDDS | PWR_CR_LPDS;
 
+    power_wfe(); 
+    return 0;
+}
+
+static int
+power_standby(struct device *dev) {
+    // enable wake on interrupt
+    PWR_BASE->CSR |= PWR_CSR_EWUP;
+
+    // standby will not wait for ISRs to exit
+    SCB_BASE->SCR &= ~SCB_SCR_SLEEPONEXIT;
+    
+    /* Enter "standby" mode */
+    // clear wakup flag
+    PWR_BASE->CR |= PWR_CR_CWUF;
+    
+    // set sleepdeep in cortex system control register
+    SCB_BASE->SCR |= SCB_SCR_SLEEPDEEP;
+
+    // select standby mode
+    PWR_BASE->CR |= PWR_CR_PDDS;
+
+    power_wfi(); // allow only interrupts to wake up the CPU from sleep
     return 0;
 }
 
@@ -77,7 +115,17 @@ power_wfi(void)
 {
     // request wait for interrupt (in-line assembly)
     asm volatile (
-        "WFI\n\t" // note for WFE, just replace this with WFE
+        "WFI\n\t" 
+        );
+    return 0;
+}
+
+int
+power_wfe(void)
+{
+    // request wait for any event (in-line assembly)
+    asm volatile (
+        "WFE\n\t" 
         );
     return 0;
 }
@@ -97,6 +145,7 @@ power_deinit(struct device *dev)
     // clear wakup flag
     PWR_BASE->CSR &= ~PWR_CSR_EWUP;
 
+    power_wfi();
     return 0;
 }
 
@@ -286,8 +335,8 @@ power_set_state(int state)
 
 struct device power = {
     power_init,
-    power_deinit,
-    power_suspend,
+    power_deinit, // called on hard power down
+    power_stop,   // called on logging
     power_resume,
     "Power Management",
 };
