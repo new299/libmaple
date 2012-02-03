@@ -108,6 +108,7 @@ battery_is_low(void)
 
     if( power_get_state() == PWRSTATE_LOG ) {   ////////// PWRSTATE_LOG TEST STATUS: THIS CODE IS UNTESTED
         if( (count % LOG_BATT_FREQ) == 0 ) {
+#if 0
             // only once every LOG_BATT_FREQ events do we actually measure the battery
             // this is to reduce power consumption
             gpio_init_all();
@@ -117,7 +118,7 @@ battery_is_low(void)
             rcc_clk_init(RCC_CLKSRC_PLL, RCC_PLLSRC_HSI_DIV_2, RCC_PLLMUL_9); 
             rcc_set_prescaler(RCC_PRESCALER_AHB, RCC_AHB_SYSCLK_DIV_1);
             rcc_set_prescaler(RCC_PRESCALER_APB2, RCC_APB2_HCLK_DIV_1);
-    
+#endif
             // init ADC
             rcc_set_prescaler(RCC_PRESCALER_ADC, RCC_ADCPRE_PCLK_DIV_6);
             adc_init(ADC1);
@@ -137,6 +138,10 @@ battery_is_low(void)
             pinMode(BATT_MEASURE_ADC, INPUT_ANALOG);
             pinMode(MEASURE_FET_GPIO, OUTPUT);
             digitalWrite(MEASURE_FET_GPIO, 0);
+
+            // now turn off the ADC
+            rcc_reset_dev(ADC1->clk_id);
+            rcc_clk_disable(ADC1->clk_id);
         } else {
             // on the fall-through just lie and assume battery isn't low. close enough.
             return 0;
@@ -208,11 +213,15 @@ battery_init(void)
 static int
 battery_resume(struct device *dev)
 {
+    Serial1.println ("Resuming battery timer.\n" );
+    measure_timer.resume();
     return 0;
 }
 
 static int
 battery_suspend(struct device *dev) {
+    Serial1.println ("Pausing battery timer.\n" );
+    measure_timer.pause();
     return 0;
 }
 

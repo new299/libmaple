@@ -14,6 +14,7 @@
 // for power control support
 #include "pwr.h"
 #include "scb.h"
+#include "pwr_test.h"
 
 #define LED_GPIO 25       // PD2
 
@@ -207,6 +208,7 @@ static void fill_oled(int c) {
 
 
 static void drawTiles(int t) {
+#if 0
     tile_draw(0, 10, images[(t+0)&0xff]);
     tile_draw(1, 10, images[(t+1)&0xff]);
     tile_draw(2, 10, images[(t+2)&0xff]);
@@ -223,7 +225,7 @@ static void drawTiles(int t) {
     tile_draw(13, 10, images[(t+13)&0xff]);
     tile_draw(14, 10, images[(t+14)&0xff]);
     tile_draw(15, 10, images[(t+15)&0xff]);
-
+#endif
     {
         unsigned char buf[8 * sizeof(long long)];
         unsigned long i = 0, j, n = t;
@@ -357,6 +359,7 @@ loop(unsigned int t)
 __attribute__((constructor)) void
 premain()
 {
+    //    pwr_test();
     init();
 }
 
@@ -390,12 +393,12 @@ main(void)
     /* All activity should take place in interrupts. */
     Serial1.println("Entering main loop...");
     while (true) {
-        if (power_get_state() == PWRSTATE_USER)
+        if (power_get_state() == PWRSTATE_USER) {
             loop(t++);
-        else
+            power_sleep(); // just stop clock to CPU core, don't shut down peripherals
+        } else {
             Serial1.println(".");
-
-        power_sleep(); // just stop clock to CPU core, don't shut down peripherals
+        }
     }
 
     #if 0
