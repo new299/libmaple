@@ -15,6 +15,7 @@
 // for power control support
 #include "pwr.h"
 #include "scb.h"
+#include "pwr_test.h"
 
 #define LED_GPIO 25       // PD2
 
@@ -513,6 +514,7 @@ loop(unsigned int t)
 __attribute__((constructor)) void
 premain()
 {
+    //    pwr_test();
     init();
 }
 
@@ -546,12 +548,12 @@ main(void)
     /* All activity should take place in interrupts. */
     Serial1.println("Entering main loop...");
     while (true) {
-        if (power_get_state() == PWRSTATE_USER)
+        if (power_get_state() == PWRSTATE_USER) {
             loop(t++);
-        else
+            power_sleep(); // just stop clock to CPU core, don't shut down peripherals
+        } else {
             Serial1.println(".");
-
-        power_sleep(); // just stop clock to CPU core, don't shut down peripherals
+        }
     }
 
     #if 0

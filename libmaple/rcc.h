@@ -487,6 +487,7 @@ void rcc_clk_init(rcc_sysclk_src sysclk_src,
                   rcc_pllsrc pll_src,
                   rcc_pll_multiplier pll_mul);
 void rcc_clk_enable(rcc_clk_id device);
+void rcc_clk_disable(rcc_clk_id device);
 void rcc_reset_dev(rcc_clk_id device);
 
 typedef enum rcc_clk_domain {

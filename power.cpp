@@ -68,28 +68,25 @@ static int
 power_stop(struct device *dev) { 
     Serial1.println ("Stopping CPU.\n" ); // for debug only
 
-    // enable wake on interrupt
-    PWR_BASE->CSR |= PWR_CSR_EWUP;
+    // hard code register values because the macros provided by libmaple are broken
+    delay_us(10000);   // give the system time to settle (10ms)
 
-    // stop will wait for ISRs to exit
-    SCB_BASE->SCR |= SCB_SCR_SLEEPONEXIT;
+#if 0
+    SCB_BASE->SCR = 0x4;     // set DEEPSLEEP
+    PWR_BASE->CSR = 0x100;   // allow wakeup pin to wake me up
+    PWR_BASE->CR = 4;        // clear the woken up flag
+    PWR_BASE->CR = 1;        // set the low power regulator mode, unset PDDS, 3 for standby
+#endif 
+    asm volatile (".code 16\n"
+                  "wfi\n");
     
-    /* Enter "Stop" mode */
-    // clear wakup flag
-    PWR_BASE->CR |= PWR_CR_CWUF;
-    
-    // set sleepdeep in cortex system control register
-    SCB_BASE->SCR |= SCB_SCR_SLEEPDEEP;
-
-    // select stop mode
-    PWR_BASE->CR |= PWR_CR_PDDS | PWR_CR_LPDS;
-
-    power_wfe(); 
+    delay_us(1000);   // give the system time to proc the interrupt handler (1 ms)
     return 0;
 }
 
 static int
 power_standby(struct device *dev) {
+#if 0
     // enable wake on interrupt
     PWR_BASE->CSR |= PWR_CSR_EWUP;
 
@@ -108,15 +105,15 @@ power_standby(struct device *dev) {
 
     power_wfi(); // allow only interrupts to wake up the CPU from sleep
     return 0;
+#endif
 }
 
 int
 power_wfi(void)
 {
     // request wait for interrupt (in-line assembly)
-    asm volatile (
-        "WFI\n\t" 
-        );
+    asm volatile (".code 16\n"
+                  "wfi\n");
     return 0;
 }
 
@@ -124,9 +121,8 @@ int
 power_wfe(void)
 {
     // request wait for any event (in-line assembly)
-    asm volatile (
-        "WFE\n\t" 
-        );
+    asm volatile (".code 16\n"
+                  "wfe\n");
     return 0;
 }
 
