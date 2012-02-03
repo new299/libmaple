@@ -613,8 +613,10 @@ main(void)
         if (power_get_state() == PWRSTATE_USER) {
             loop(t++);
             power_sleep(); // go into wfi state
-        } else {
-            ;//Serial1.println(".");
+        }
+        else {
+            Serial1.print("Sleep loop #"); Serial1.println(t++);
+            power_wfi();
         }
     }
 
