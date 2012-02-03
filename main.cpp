@@ -176,6 +176,18 @@ static void fill_oled(int c) {
     tile_set(14, 3, images[256+5]);
 
     tile_set(1, 4, images[256+2]);
+    tile_set(2, 4, images[32]);
+    tile_set(3, 4, images[32]);
+    tile_set(4, 4, images[32]);
+    tile_set(5, 4, images[32]);
+    tile_set(6, 4, images[32]);
+    tile_set(7, 4, images[32]);
+    tile_set(8, 4, images[32]);
+    tile_set(9, 4, images[32]);
+    tile_set(10, 4, images[32]);
+    tile_set(11, 4, images[32]);
+    tile_set(12, 4, images[32]);
+    tile_set(13, 4, images[32]);
     tile_set(14, 4, images[256+5]);
 
     tile_set(1, 5, images[256+2]);
@@ -318,25 +330,26 @@ draw_number(int x, int y, int n)
 }
 
 
-static void drawTiles(int t) {
-    /*
-    tile_draw(0, 10, images[(t+0)&0xff]);
-    tile_draw(1, 10, images[(t+1)&0xff]);
-    tile_draw(2, 10, images[(t+2)&0xff]);
-    tile_draw(3, 10, images[(t+3)&0xff]);
-    tile_draw(4, 10, images[(t+4)&0xff]);
-    tile_draw(5, 10, images[(t+5)&0xff]);
-    tile_draw(6, 10, images[(t+6)&0xff]);
-    tile_draw(7, 10, images[(t+7)&0xff]);
-    tile_draw(8, 10, images[(t+8)&0xff]);
-    tile_draw(9, 10, images[(t+9)&0xff]);
-    tile_draw(10, 10, images[(t+10)&0xff]);
-    tile_draw(11, 10, images[(t+11)&0xff]);
-    tile_draw(12, 10, images[(t+12)&0xff]);
-    tile_draw(13, 10, images[(t+13)&0xff]);
-    tile_draw(14, 10, images[(t+14)&0xff]);
-    tile_draw(15, 10, images[(t+15)&0xff]);
-    */
+static void
+drawTiles(int t) {
+    draw_number(4, 4, t);
+
+    tile_draw(0, 11, images[(t+0)&0xff]);
+    tile_draw(1, 11, images[(t+1)&0xff]);
+    tile_draw(2, 11, images[(t+2)&0xff]);
+    tile_draw(3, 11, images[(t+3)&0xff]);
+    tile_draw(4, 11, images[(t+4)&0xff]);
+    tile_draw(5, 11, images[(t+5)&0xff]);
+    tile_draw(6, 11, images[(t+6)&0xff]);
+    tile_draw(7, 11, images[(t+7)&0xff]);
+    tile_draw(8, 11, images[(t+8)&0xff]);
+    tile_draw(9, 11, images[(t+9)&0xff]);
+    tile_draw(10, 11, images[(t+10)&0xff]);
+    tile_draw(11, 11, images[(t+11)&0xff]);
+    tile_draw(12, 11, images[(t+12)&0xff]);
+    tile_draw(13, 11, images[(t+13)&0xff]);
+    tile_draw(14, 11, images[(t+14)&0xff]);
+    tile_draw(15, 11, images[(t+15)&0xff]);
 }
 
 static void
@@ -395,7 +408,7 @@ loop(unsigned int t)
     if (cap_should_poll())
         cap_poll();
 
-    //drawTiles(t);
+    drawTiles(t);
     
     if (accel_read_state(&x, &y, &z))
         Serial1.println("Unable to read accel value!");
@@ -410,32 +423,28 @@ loop(unsigned int t)
     if( Serial1.available() ) {
         c = Serial1.read();
     }
-    /*
-    else if( touchStat ) {
+    else if(touch_pad != old_touch_pad) {
         // pick just one of the touch states and turn it into a key press
-        if( touchStat & W_KEY )
+        if ( (touch_pad & KEY_W) && !(old_touch_pad & KEY_W) )
             c = 'W';
-        if( touchStat & A_KEY )
+        if ( (touch_pad & KEY_A) && !(old_touch_pad & KEY_A) )
             c = 'A';
-        if( touchStat & S_KEY )
+        if ( (touch_pad & KEY_S) && !(old_touch_pad & KEY_S) )
             c = 'S';
-        if( touchStat & D_KEY )
+        if ( (touch_pad & KEY_D) && !(old_touch_pad & KEY_D) )
             c = 'D';
-        if( touchStat & Q_KEY )
+        if ( (touch_pad & KEY_Q) && !(old_touch_pad & KEY_Q) )
             c = 'Q';
-        if( touchStat & E_KEY )
+        if ( (touch_pad & KEY_E) && !(old_touch_pad & KEY_E) )
             c = 'E';
-        
-        touchStat = 0;
+        old_touch_pad = touch_pad;
     }
-    */
     else {
         return;
     }
     // echo the character received
     Serial1.print( "safecast> " );
-    Serial1.write(c);
-    Serial1.println( "\r" );
+    Serial1.println((char)c);
 
     switch(c) {
     case '\0':
