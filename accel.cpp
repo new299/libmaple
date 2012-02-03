@@ -7,7 +7,7 @@
 
 static struct i2c_dev *i2c = ACCEL_I2C;
 
-static void
+static int
 accel_write(uint8 addr, uint8 value)
 {
     struct i2c_msg msg;
@@ -23,9 +23,9 @@ accel_write(uint8 addr, uint8 value)
     msg.xferred = 0;
     msg.data    = bytes;
 
-    result = i2c_master_xfer(i2c, &msg, 1, 100);
+    result = i2c_master_xfer(i2c, &msg, 1, 1);
 
-    return;
+    return result;
 }
 
 static uint8
@@ -40,7 +40,7 @@ accel_read(uint8 addr)
     msgs[0].data   = msgs[1].data   = &byte;
     msgs[0].flags = 0;
     msgs[1].flags = I2C_MSG_READ;
-    i2c_master_xfer(i2c, msgs, 2, 100);
+    i2c_master_xfer(i2c, msgs, 2, 1);
     return byte;
 }
 
@@ -62,7 +62,7 @@ accel_read_state(int *x, int *y, int *z)
     msgs[1].length = sizeof(values);
     msgs[1].data   = (uint8 *)values;
     msgs[1].flags  = I2C_MSG_READ;
-    result = i2c_master_xfer(i2c, msgs, 2, 100);
+    result = i2c_master_xfer(i2c, msgs, 2, 1);
 
     if (x)
         *x = (values[1]<<2) | (values[0]);
