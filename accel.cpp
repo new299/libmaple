@@ -98,7 +98,8 @@ accel_resume(struct device *dev)
 static int
 accel_suspend(struct device *dev) {
     /* Set the "mode" to "Standby" */
-    accel_write(0x16, 0);
+#warning Need hardware patch to get this working
+    //accel_write(0x16, 0);
     return 0;
 }
 
