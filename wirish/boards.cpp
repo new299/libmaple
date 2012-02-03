@@ -84,7 +84,11 @@ bool boardUsesPin(uint8 pin) {
 
 static void setupFlash(void) {
     flash_enable_prefetch();
-    flash_set_latency(FLASH_WAIT_STATE_2);
+#ifdef _BOARD_SAFECAST_H_
+    flash_set_latency(FLASH_WAIT_STATE_1); // we run at 36 MHz
+#else
+    flash_set_latency(FLASH_WAIT_STATE_2); // 2 wait states for 72 MHz
+#endif
 }
 
 /*

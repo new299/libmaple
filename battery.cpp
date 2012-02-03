@@ -113,6 +113,11 @@ battery_is_low(void)
             gpio_init_all();
             afio_init();
 
+            // setup clocks assuming we just got woken up out of stop state
+            rcc_clk_init(RCC_CLKSRC_PLL, RCC_PLLSRC_HSI_DIV_2, RCC_PLLMUL_9); 
+            rcc_set_prescaler(RCC_PRESCALER_AHB, RCC_AHB_SYSCLK_DIV_1);
+            rcc_set_prescaler(RCC_PRESCALER_APB2, RCC_APB2_HCLK_DIV_1);
+    
             // init ADC
             rcc_set_prescaler(RCC_PRESCALER_ADC, RCC_ADCPRE_PCLK_DIV_6);
             adc_init(ADC1);
@@ -150,7 +155,23 @@ static void
 take_measurement(void)
 {
     static int c=0;
-    Serial1.print("Taking a battery measurement #"); Serial1.println(c++);
+
+    if( debug ) 
+        Serial1.begin(115200);
+
+    if( battery_is_low() ) {
+        if( debug ) {
+            Serial1.println( "Battery is low, going into deep shutdown.\n" );
+        }
+
+        // this will call power_deinit, which is a hard powerdown
+        device_remove( &power );
+    } else {
+        if( debug ) {
+            Serial1.print("Battery measurement #"); Serial1.print(c++); Serial1.println( " is not low.\n" );
+        }
+        return;
+    }
 }
 
 
