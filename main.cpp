@@ -155,6 +155,7 @@ static void fill_oled(int c) {
     for (x=0; x<16; x++)
         tile_set(x, y, images[256+9+7]);
 
+    /* Top border */
     y++;
     tile_set(0, y, images[256+9+7]);
     tile_set(1, y, images[256+7]);
@@ -173,6 +174,7 @@ static void fill_oled(int c) {
     tile_set(14, y, images[256+8]);
     tile_set(15, y, images[256+9+7]);
 
+    /* "Hello" line */
     y++;
     tile_set(0, y, images[256+9+7]);
     tile_set(1, y, images[256+2]);
@@ -191,6 +193,7 @@ static void fill_oled(int c) {
     tile_set(14, y, images[256+5]);
     tile_set(15, y, images[256+9+7]);
 
+    /* Counter line */
     y++;
     tile_set(0, y, images[256+9+7]);
     tile_set(1, y, images[256+2]);
@@ -209,6 +212,7 @@ static void fill_oled(int c) {
     tile_set(14, y, images[256+5]);
     tile_set(15, y, images[256+9+7]);
 
+    /* WASD line 1 */
     y++;
     tile_set(0, y, images[256+9+7]);
     tile_set(1, y, images[256+2]);
@@ -227,7 +231,7 @@ static void fill_oled(int c) {
     tile_set(14, y, images[256+5]);
     tile_set(15, y, images[256+9+7]);
 
-
+    /* WASD line 2 */
     y++;
     tile_set(0, y, images[256+9+7]);
     tile_set(1, y, images[256+2]);
@@ -246,25 +250,7 @@ static void fill_oled(int c) {
     tile_set(14, y, images[256+5]);
     tile_set(15, y, images[256+9+7]);
 
-
-    y++;
-    tile_set(0, y, images[256+9+7]);
-    tile_set(1, y, images[256+2]);
-    tile_set(2, y, images[32]);
-    tile_set(3, y, images[32]);
-    tile_set(4, y, images[32]);
-    tile_set(5, y, images[32]);
-    tile_set(6, y, images[32]);
-    tile_set(7, y, images[32]);
-    tile_set(8, y, images[32]);
-    tile_set(9, y, images[32]);
-    tile_set(10, y, images[32]);
-    tile_set(11, y, images[32]);
-    tile_set(12, y, images[32]);
-    tile_set(13, y, images[32]);
-    tile_set(14, y, images[256+5]);
-    tile_set(15, y, images[256+9+7]);
-
+    /* Accelerometer X line */
     y++;
     tile_set(0, y, images[256+9+7]);
     tile_set(1, y, images[256+2]);
@@ -283,6 +269,7 @@ static void fill_oled(int c) {
     tile_set(14, y, images[256+5]);
     tile_set(15, y, images[256+9+7]);
 
+    /* Accelerometer Y line */
     y++;
     tile_set(0, y, images[256+9+7]);
     tile_set(1, y, images[256+2]);
@@ -301,6 +288,7 @@ static void fill_oled(int c) {
     tile_set(14, y, images[256+5]);
     tile_set(15, y, images[256+9+7]);
 
+    /* Accelerometer Z line */
     y++;
     tile_set(0, y, images[256+9+7]);
     tile_set(1, y, images[256+2]);
@@ -320,6 +308,7 @@ static void fill_oled(int c) {
     tile_set(15, y, images[256+9+7]);
 
 
+    /* Bottom line */
     y++;
     tile_set(0, y, images[256+9+7]);
     tile_set(1, y, images[256+3]);
@@ -401,15 +390,15 @@ drawTiles(int t) {
 
     x = 14;
     y = 0;
-    if (level > 12) {
+    if (level > 14) {
         tile_set(x++, y, images[256+9+4]);
         tile_set(x++, y, images[256+9+5]);
     }
-    else if (level > 10) {
+    else if (level > 11) {
         tile_set(x++, y, images[256+9+4]);
         tile_set(x++, y, images[256+9+3]);
     }
-    else if (level > 7) {
+    else if (level > 8) {
         tile_set(x++, y, images[256+9+4]);
         tile_set(x++, y, images[256+9+2]);
     }
