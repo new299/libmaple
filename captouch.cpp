@@ -98,9 +98,6 @@ cap_poll(void)
         }
     }
 
-    if (previous_board_state == board_state)
-        Serial1.println("Got a cap_change event, but no change noted");
-
     previous_board_state = board_state;
     should_poll = 0;
 
