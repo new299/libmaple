@@ -22,16 +22,10 @@ switch_change(void)
     rcc_set_prescaler(RCC_PRESCALER_APB1, RCC_APB2_HCLK_DIV_1);
     rcc_set_prescaler(RCC_PRESCALER_APB2, RCC_APB2_HCLK_DIV_1);
     
-    delay(10); /* Debounce */
-    if (switch_state(&back_switch)) {
-        //        Serial1.println("Powering board on!");
-        delay(20); /* Let I2C come up */
+    if (switch_state(&back_switch))
         power_set_state(PWRSTATE_USER);
-    }
-    else {
-        //        Serial1.println("Powering board off!");
+    else
         power_set_state(PWRSTATE_LOG);
-    }
 }
 
 static int
