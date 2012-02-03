@@ -15,6 +15,7 @@
 static const char keys[] = "E.DWS.A.Q........";
 
 static struct i2c_dev *i2c = CAPTOUCH_I2C;
+static int should_poll = 1;
 
 
 static void (*on_keydown)(char key);
@@ -37,23 +38,7 @@ mpr121Write(uint8 addr, uint8 value)
     msg.xferred = 0;
     msg.data = bytes;
 
-    if (i2c->state != I2C_STATE_IDLE) {
-        Serial1.print("About to assert, i2c state is ");
-        Serial1.println(i2c->state);
-    }
     result = i2c_master_xfer(i2c, &msg, 1, 100);
-    if (i2c->state != I2C_STATE_IDLE) {
-        Serial1.print("Error: After returning, i2c state is ");
-        Serial1.print(i2c->state);
-        Serial1.print(".  Error flags: ");
-        Serial1.println(i2c->error_flags, 16);
-    }
-    if (!result) {
-        Serial1.print(addr, 16); Serial1.print(" -> "); Serial1.print(value); Serial1.print("\r\n");
-    }
-    else {
-        Serial1.print(addr, 16); Serial1.print(" err "); Serial1.print(result); Serial1.print("\r\n");
-    }
 
     return;
 }
@@ -70,20 +55,25 @@ mpr121Read(uint8 addr)
     msgs[0].data   = msgs[1].data   = &byte;
     msgs[0].flags = 0;
     msgs[1].flags = I2C_MSG_READ;
-    if (i2c->state != I2C_STATE_IDLE) {
-        Serial1.print("About to barf reading, i2c state is ");
-        Serial1.println(i2c->state);
-    }
     i2c_master_xfer(i2c, msgs, 2, 100);
-    if (i2c->state != I2C_STATE_IDLE) {
-        Serial1.print("Error: After returning from a read, i2c state is ");
-        Serial1.println(i2c->state);
-    }
     return byte;
 }
 
 static void
 cap_change(void)
+{
+    should_poll = 1;
+}
+
+int
+cap_should_poll(void)
+{
+    return should_poll;
+}
+
+
+void
+cap_poll(void)
 {
     static int previous_board_state;
     int board_state;
@@ -112,6 +102,7 @@ cap_change(void)
         Serial1.println("Got a cap_change event, but no change noted");
 
     previous_board_state = board_state;
+    should_poll = 0;
 
     return;
 }
