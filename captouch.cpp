@@ -234,6 +234,7 @@ cap_resume(struct device *dev)
 {
     i2c_init(i2c);
     i2c_master_enable(i2c, 0);
+    i2c->state = I2C_STATE_IDLE;
 
     should_poll = 1;
 
