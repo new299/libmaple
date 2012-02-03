@@ -35,7 +35,6 @@ mpr121Write(uint8 addr, uint8 value)
     msg.addr = CAPTOUCH_ADDR;
     msg.flags = 0;
     msg.length = sizeof(bytes);
-    msg.xferred = 0;
     msg.data = bytes;
 
     result = i2c_master_xfer(i2c, &msg, 1, 100);
