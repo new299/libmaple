@@ -58,7 +58,7 @@ power_set_debug(int level)
 
 int power_sleep() {
     // sleep will wait not for pending ISRs to exit, immediate sleep
-    SCB_BASE->SCR &= ~SCB_SCR_SLEEPONEXIT;
+    SCB_BASE->SCR = 0;
 
     power_wfe(); // allow any event to wake up the CPU from sleep
     return 0;
@@ -69,18 +69,14 @@ power_stop(struct device *dev) {
     Serial1.println ("Stopping CPU.\n" ); // for debug only
 
     // hard code register values because the macros provided by libmaple are broken
-    delay_us(10000);   // give the system time to settle (10ms)
-
-#if 0
     SCB_BASE->SCR = 0x4;     // set DEEPSLEEP
     PWR_BASE->CSR = 0x100;   // allow wakeup pin to wake me up
     PWR_BASE->CR = 4;        // clear the woken up flag
     PWR_BASE->CR = 1;        // set the low power regulator mode, unset PDDS, 3 for standby
-#endif 
+
     asm volatile (".code 16\n"
                   "wfi\n");
     
-    delay_us(1000);   // give the system time to proc the interrupt handler (1 ms)
     return 0;
 }
 
@@ -104,8 +100,8 @@ power_standby(struct device *dev) {
     PWR_BASE->CR |= PWR_CR_PDDS;
 
     power_wfi(); // allow only interrupts to wake up the CPU from sleep
-    return 0;
 #endif
+    return 0;
 }
 
 int
@@ -185,8 +181,11 @@ power_update(void)
     if (power_state == PWRSTATE_USER)
         device_resume_all();
 
-    else if (power_state == PWRSTATE_LOG)
+    else if (power_state == PWRSTATE_LOG) {
         device_pause_all();
+        // we will recover into this state
+        device_resume_all();
+    }
 
     else if (power_state == PWRSTATE_DOWN)
         device_remove_all();

@@ -24,7 +24,6 @@ switch_change(void)
     
     delay(10); /* Debounce */
     if (switch_state(&back_switch)) {
-        digitalWrite(25, 1); // testing only
         //        Serial1.println("Powering board on!");
         delay(20); /* Let I2C come up */
         power_set_state(PWRSTATE_USER);
