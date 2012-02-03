@@ -36,6 +36,7 @@ static uint8 old_touch_pad;
 const static uint8 images[][128] = {
     #include "font.h"
     #include "alert.h"
+    #include "ui.h"
 };
 
 
@@ -132,170 +133,214 @@ setup(void)
 
 static void fill_oled(int c) {
     // a test routine to fill the oled with a pattern
-    int x, y, ptr;
+    int x, y;
 //    uint16 data[8*8*2];
 
     // a little bit of oled
-//    ptr = 0;
+//    int ptr = 0;
 //    for (y=0; y<8; y++)
 //        for (x=0; x<8; x++)
 //            data[ptr++] = RGB16(x+c, (x+c)*(y+c), (y+c) * (((y/32)+1)*16));
 
-    ptr = c;
-    for (y=0; y<16; y++)
+    y = 0;
+    x = 0;
+    tile_set(x, y, images[256+0]);
+    for (x=1; x<14; x++)
+        tile_set(x, y, images[256+9+6]);
+    tile_set(x++, y, images[256+9+4]);
+    tile_set(x++, y, images[256+9+5]);
+
+
+    y++;
+    for (x=0; x<16; x++)
+        tile_set(x, y, images[256+9+7]);
+
+    y++;
+    tile_set(0, y, images[256+9+7]);
+    tile_set(1, y, images[256+7]);
+    tile_set(2, y, images[256+6]);
+    tile_set(3, y, images[256+6]);
+    tile_set(4, y, images[256+6]);
+    tile_set(5, y, images[256+6]);
+    tile_set(6, y, images[256+6]);
+    tile_set(7, y, images[256+6]);
+    tile_set(8, y, images[256+6]);
+    tile_set(9, y, images[256+6]);
+    tile_set(10, y, images[256+6]);
+    tile_set(11, y, images[256+6]);
+    tile_set(12, y, images[256+6]);
+    tile_set(13, y, images[256+6]);
+    tile_set(14, y, images[256+8]);
+    tile_set(15, y, images[256+9+7]);
+
+    y++;
+    tile_set(0, y, images[256+9+7]);
+    tile_set(1, y, images[256+2]);
+    tile_set(2, y, images[122]);
+    tile_set(3, y, images['h'-'`'+64]);
+    tile_set(4, y, images['e'-'`']);
+    tile_set(5, y, images['l'-'`']);
+    tile_set(6, y, images['l'-'`']);
+    tile_set(7, y, images['o'-'`']);
+    tile_set(8, y, images[32]);
+    tile_set(9, y, images['t'-'`']);
+    tile_set(10, y, images['h'-'`']);
+    tile_set(11, y, images['e'-'`']);
+    tile_set(12, y, images['r'-'`']);
+    tile_set(13, y, images['e'-'`']);
+    tile_set(14, y, images[256+5]);
+    tile_set(15, y, images[256+9+7]);
+
+    y++;
+    tile_set(0, y, images[256+9+7]);
+    tile_set(1, y, images[256+2]);
+    tile_set(2, y, images[32]);
+    tile_set(3, y, images[32]);
+    tile_set(4, y, images[32]);
+    tile_set(5, y, images[32]);
+    tile_set(6, y, images[32]);
+    tile_set(7, y, images[32]);
+    tile_set(8, y, images[32]);
+    tile_set(9, y, images[32]);
+    tile_set(10, y, images[32]);
+    tile_set(11, y, images[32]);
+    tile_set(12, y, images[32]);
+    tile_set(13, y, images[32]);
+    tile_set(14, y, images[256+5]);
+    tile_set(15, y, images[256+9+7]);
+
+    y++;
+    tile_set(0, y, images[256+9+7]);
+    tile_set(1, y, images[256+2]);
+    tile_set(2, y, images[32]);
+    tile_set(3, y, images[32]);
+    tile_set(4, y, images[32]);
+    tile_set(5, y, images[32]);
+    tile_set(6, y, images[32]);
+    tile_set(7, y, images[32]);
+    tile_set(8, y, images[32]);
+    tile_set(9, y, images[32]);
+    tile_set(10, y, images[32]);
+    tile_set(11, y, images[32]);
+    tile_set(12, y, images[32]);
+    tile_set(13, y, images[32]);
+    tile_set(14, y, images[256+5]);
+    tile_set(15, y, images[256+9+7]);
+
+
+    y++;
+    tile_set(0, y, images[256+9+7]);
+    tile_set(1, y, images[256+2]);
+    tile_set(2, y, images[32]);
+    tile_set(3, y, images[32]);
+    tile_set(4, y, images[32]);
+    tile_set(5, y, images[32]);
+    tile_set(6, y, images[32]);
+    tile_set(7, y, images[32]);
+    tile_set(8, y, images[32]);
+    tile_set(9, y, images[32]);
+    tile_set(10, y, images[32]);
+    tile_set(11, y, images[32]);
+    tile_set(12, y, images[32]);
+    tile_set(13, y, images[32]);
+    tile_set(14, y, images[256+5]);
+    tile_set(15, y, images[256+9+7]);
+
+
+    y++;
+    tile_set(0, y, images[256+9+7]);
+    tile_set(1, y, images[256+2]);
+    tile_set(2, y, images[32]);
+    tile_set(3, y, images[32]);
+    tile_set(4, y, images[32]);
+    tile_set(5, y, images[32]);
+    tile_set(6, y, images[32]);
+    tile_set(7, y, images[32]);
+    tile_set(8, y, images[32]);
+    tile_set(9, y, images[32]);
+    tile_set(10, y, images[32]);
+    tile_set(11, y, images[32]);
+    tile_set(12, y, images[32]);
+    tile_set(13, y, images[32]);
+    tile_set(14, y, images[256+5]);
+    tile_set(15, y, images[256+9+7]);
+
+    y++;
+    tile_set(0, y, images[256+9+7]);
+    tile_set(1, y, images[256+2]);
+    tile_set(2, y, images['x'-'`'+64]);
+    tile_set(3, y, images[58]);
+    tile_set(4, y, images[32]);
+    tile_set(5, y, images[32]);
+    tile_set(6, y, images[32]);
+    tile_set(7, y, images[32]);
+    tile_set(8, y, images[32]);
+    tile_set(9, y, images[32]);
+    tile_set(10, y, images[32]);
+    tile_set(11, y, images[32]);
+    tile_set(12, y, images[32]);
+    tile_set(13, y, images[32]);
+    tile_set(14, y, images[256+5]);
+    tile_set(15, y, images[256+9+7]);
+
+    y++;
+    tile_set(0, y, images[256+9+7]);
+    tile_set(1, y, images[256+2]);
+    tile_set(2, y, images['y'-'`'+64]);
+    tile_set(3, y, images[58]);
+    tile_set(4, y, images[32]);
+    tile_set(5, y, images[32]);
+    tile_set(6, y, images[32]);
+    tile_set(7, y, images[32]);
+    tile_set(8, y, images[32]);
+    tile_set(9, y, images[32]);
+    tile_set(10, y, images[32]);
+    tile_set(11, y, images[32]);
+    tile_set(12, y, images[32]);
+    tile_set(13, y, images[32]);
+    tile_set(14, y, images[256+5]);
+    tile_set(15, y, images[256+9+7]);
+
+    y++;
+    tile_set(0, y, images[256+9+7]);
+    tile_set(1, y, images[256+2]);
+    tile_set(2, y, images['z'-'`'+64]);
+    tile_set(3, y, images[58]);
+    tile_set(4, y, images[32]);
+    tile_set(5, y, images[32]);
+    tile_set(6, y, images[32]);
+    tile_set(7, y, images[32]);
+    tile_set(8, y, images[32]);
+    tile_set(9, y, images[32]);
+    tile_set(10, y, images[32]);
+    tile_set(11, y, images[32]);
+    tile_set(12, y, images[32]);
+    tile_set(13, y, images[32]);
+    tile_set(14, y, images[256+5]);
+    tile_set(15, y, images[256+9+7]);
+
+
+    y++;
+    tile_set(0, y, images[256+9+7]);
+    tile_set(1, y, images[256+3]);
+    tile_set(2, y, images[256+1]);
+    tile_set(3, y, images[256+1]);
+    tile_set(4, y, images[256+1]);
+    tile_set(5, y, images[256+1]);
+    tile_set(6, y, images[256+1]);
+    tile_set(7, y, images[256+1]);
+    tile_set(8, y, images[256+1]);
+    tile_set(9, y, images[256+1]);
+    tile_set(10, y, images[256+1]);
+    tile_set(11, y, images[256+1]);
+    tile_set(12, y, images[256+1]);
+    tile_set(13, y, images[256+1]);
+    tile_set(14, y, images[256+4]);
+    tile_set(15, y, images[256+9+7]);
+
+    for (y=11; y<16; y++)
         for (x=0; x<16; x++)
-            tile_set(x, y, images[256+0]);
-
-    tile_set(1, 2, images[256+7]);
-    tile_set(2, 2, images[256+6]);
-    tile_set(3, 2, images[256+6]);
-    tile_set(4, 2, images[256+6]);
-    tile_set(5, 2, images[256+6]);
-    tile_set(6, 2, images[256+6]);
-    tile_set(7, 2, images[256+6]);
-    tile_set(8, 2, images[256+6]);
-    tile_set(9, 2, images[256+6]);
-    tile_set(10, 2, images[256+6]);
-    tile_set(11, 2, images[256+6]);
-    tile_set(12, 2, images[256+6]);
-    tile_set(13, 2, images[256+6]);
-    tile_set(14, 2, images[256+8]);
-
-    tile_set(1, 3, images[256+2]);
-    tile_set(2, 3, images[122]);
-    tile_set(3, 3, images['h'-'`'+64]);
-    tile_set(4, 3, images['e'-'`']);
-    tile_set(5, 3, images['l'-'`']);
-    tile_set(6, 3, images['l'-'`']);
-    tile_set(7, 3, images['o'-'`']);
-    tile_set(8, 3, images[32]);
-    tile_set(9, 3, images['t'-'`']);
-    tile_set(10, 3, images['h'-'`']);
-    tile_set(11, 3, images['e'-'`']);
-    tile_set(12, 3, images['r'-'`']);
-    tile_set(13, 3, images['e'-'`']);
-    tile_set(14, 3, images[256+5]);
-
-    tile_set(1, 4, images[256+2]);
-    tile_set(2, 4, images[32]);
-    tile_set(3, 4, images[32]);
-    tile_set(4, 4, images[32]);
-    tile_set(5, 4, images[32]);
-    tile_set(6, 4, images[32]);
-    tile_set(7, 4, images[32]);
-    tile_set(8, 4, images[32]);
-    tile_set(9, 4, images[32]);
-    tile_set(10, 4, images[32]);
-    tile_set(11, 4, images[32]);
-    tile_set(12, 4, images[32]);
-    tile_set(13, 4, images[32]);
-    tile_set(14, 4, images[256+5]);
-
-    tile_set(1, 5, images[256+2]);
-    tile_set(2, 5, images[32]);
-    tile_set(3, 5, images[32]);
-    tile_set(4, 5, images[32]);
-    tile_set(5, 5, images[32]);
-    tile_set(6, 5, images[32]);
-    tile_set(7, 5, images[32]);
-    tile_set(8, 5, images[32]);
-    tile_set(9, 5, images[32]);
-    tile_set(10, 5, images[32]);
-    tile_set(11, 5, images[32]);
-    tile_set(12, 5, images[32]);
-    tile_set(13, 5, images[32]);
-    tile_set(14, 5, images[256+5]);
-
-    tile_set(1, 6, images[256+2]);
-    tile_set(2, 6, images[32]);
-    tile_set(3, 6, images[32]);
-    tile_set(4, 6, images[32]);
-    tile_set(5, 6, images[32]);
-    tile_set(6, 6, images[32]);
-    tile_set(7, 6, images[32]);
-    tile_set(8, 6, images[32]);
-    tile_set(9, 6, images[32]);
-    tile_set(10, 6, images[32]);
-    tile_set(11, 6, images[32]);
-    tile_set(12, 6, images[32]);
-    tile_set(13, 6, images[32]);
-    tile_set(14, 6, images[256+5]);
-
-    tile_set(1, 7, images[256+2]);
-    tile_set(2, 7, images['x'-'`'+64]);
-    tile_set(3, 7, images[58]);
-    tile_set(4, 7, images[32]);
-    tile_set(5, 7, images[32]);
-    tile_set(6, 7, images[32]);
-    tile_set(7, 7, images[32]);
-    tile_set(8, 7, images[32]);
-    tile_set(9, 7, images[32]);
-    tile_set(10, 7, images[32]);
-    tile_set(11, 7, images[32]);
-    tile_set(12, 7, images[32]);
-    tile_set(13, 7, images[32]);
-    tile_set(14, 7, images[256+5]);
-
-    tile_set(1, 8, images[256+2]);
-    tile_set(2, 8, images['y'-'`'+64]);
-    tile_set(3, 8, images[58]);
-    tile_set(4, 8, images[32]);
-    tile_set(5, 8, images[32]);
-    tile_set(6, 8, images[32]);
-    tile_set(7, 8, images[32]);
-    tile_set(8, 8, images[32]);
-    tile_set(9, 8, images[32]);
-    tile_set(10, 8, images[32]);
-    tile_set(11, 8, images[32]);
-    tile_set(12, 8, images[32]);
-    tile_set(13, 8, images[32]);
-    tile_set(14, 8, images[256+5]);
-
-    tile_set(1, 9, images[256+2]);
-    tile_set(2, 9, images['z'-'`'+64]);
-    tile_set(3, 9, images[58]);
-    tile_set(4, 9, images[32]);
-    tile_set(5, 9, images[32]);
-    tile_set(6, 9, images[32]);
-    tile_set(7, 9, images[32]);
-    tile_set(8, 9, images[32]);
-    tile_set(9, 9, images[32]);
-    tile_set(10, 9, images[32]);
-    tile_set(11, 9, images[32]);
-    tile_set(12, 9, images[32]);
-    tile_set(13, 9, images[32]);
-    tile_set(14, 9, images[256+5]);
-
-    tile_set(1, 6, images[256+2]);
-    tile_set(2, 6, images[32]);
-    tile_set(3, 6, images[32]);
-    tile_set(4, 6, images[32]);
-    tile_set(5, 6, images[32]);
-    tile_set(6, 6, images[32]);
-    tile_set(7, 6, images[32]);
-    tile_set(8, 6, images[32]);
-    tile_set(9, 6, images[32]);
-    tile_set(10, 6, images[32]);
-    tile_set(11, 6, images[32]);
-    tile_set(12, 6, images[32]);
-    tile_set(13, 6, images[32]);
-    tile_set(14, 6, images[256+5]);
-
-
-    tile_set(1, 10, images[256+3]);
-    tile_set(2, 10, images[256+1]);
-    tile_set(3, 10, images[256+1]);
-    tile_set(4, 10, images[256+1]);
-    tile_set(5, 10, images[256+1]);
-    tile_set(6, 10, images[256+1]);
-    tile_set(7, 10, images[256+1]);
-    tile_set(8, 10, images[256+1]);
-    tile_set(9, 10, images[256+1]);
-    tile_set(10, 10, images[256+1]);
-    tile_set(11, 10, images[256+1]);
-    tile_set(12, 10, images[256+1]);
-    tile_set(13, 10, images[256+1]);
-    tile_set(14, 10, images[256+4]);
+            tile_set(x, y, images[256+9+7]);
 }
 
 
@@ -403,9 +448,6 @@ loop(unsigned int t)
     static int dbg_touch = 0;
     uint16 temp;
     signed int x, y, z;
-
-    if (power_needs_update())
-        power_update();
 
     if (dbg_touch)
         cap_debug();
@@ -551,11 +593,14 @@ main(void)
     /* All activity should take place in interrupts. */
     Serial1.println("Entering main loop...");
     while (true) {
+        if (power_needs_update())
+            power_update();
+
         if (power_get_state() == PWRSTATE_USER) {
             loop(t++);
             power_sleep(); // just stop clock to CPU core, don't shut down peripherals
         } else {
-            Serial1.println(".");
+            ;//Serial1.println(".");
         }
     }
 
