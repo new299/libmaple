@@ -37,8 +37,15 @@ mpr121Write(uint8 addr, uint8 value)
     msg.length = sizeof(bytes);
     msg.data = bytes;
 
-    result = i2c_master_xfer(i2c, &msg, 1, 100);
-
+    result = i2c_master_xfer(i2c, &msg, 1, 2000);
+    if( result ) {
+        if( result == I2C_ERROR_PROTOCOL )
+            Serial1.println("I2C protocol error!\n" );
+        else if( result == I2C_ERROR_TIMEOUT )
+            Serial1.println("I2C timeout error!\n" );
+        else
+            Serial1.println("I2C unknown error!\n" );
+    }
     return;
 }
 
@@ -233,7 +240,7 @@ cap_resume(struct device *dev)
     i2c->state = I2C_STATE_IDLE;
 
     should_poll = 1;
-
+    
     mpr121Write(ELE_CFG, 0x00);   // disable electrodes for config
     delay(100);
 
@@ -342,6 +349,16 @@ cap_suspend(struct device *dev)
 static int
 cap_deinit(struct device *dev)
 {
+    detachInterrupt(CAPTOUCH_GPIO);
+    should_poll = 0;
+
+    // Disable MPR121 scanning, in case the chip is on
+    if (switch_state(&back_switch))
+        mpr121Write(ELE_CFG, 0x00);
+
+    /* Shut down I2C */
+    i2c_disable(i2c);
+
     return 0;
 }
 

@@ -104,6 +104,15 @@ setup(void)
     Serial1.println("Adding power...");
     device_add(&power);
 
+    Serial1.println("Adding back switch...");
+    device_add(&back_switch);
+
+    Serial1.println("Adding geiger detector...");
+    device_add(&geiger);
+
+    Serial1.println("Adding LED...");
+    device_add(&led);
+
     Serial1.println("Adding battery...");
     device_add(&battery);
 
@@ -116,8 +125,8 @@ setup(void)
     Serial1.println("Adding OLED...");
     device_add(&oled);
 
-    Serial1.println("Adding back switch...");
-    device_add(&back_switch);
+    Serial1.println("Adding accelerometer...");
+    device_add(&accel);
 
     Serial1.println("Adding real time clock...");
     device_add(&time);
@@ -126,15 +135,6 @@ setup(void)
     device_add(&captouch);
     cap_setkeyup(on_keyup);
     cap_setkeydown(on_keydown);
-
-    Serial1.println("Adding accelerometer...");
-    device_add(&accel);
-
-    Serial1.println("Adding geiger detector...");
-    device_add(&geiger);
-
-    Serial1.println("Adding LED...");
-    device_add(&led);
 
     Serial1.println("Done adding devices.");
 }
@@ -506,6 +506,12 @@ loop(unsigned int t)
     if (cap_should_poll())
         cap_poll();
 
+    if(geiger_check_event()) {
+        led_set(1);
+        buzzer_buzz_blocking();
+        led_set(0);
+    }
+
     drawTiles(t);
     
     if (accel_read_state(&x, &y, &z))
@@ -608,6 +614,11 @@ loop(unsigned int t)
         // use for validation only because it mucks with last power state tracking info
         Serial1.println("Forcing powerdown (use for validation only)\n" );
         power_set_state(PWRSTATE_DOWN);
+        break;
+    case 'x':
+        // use for validation only because it mucks with last power state tracking info
+        Serial1.println("Forcing stop (use for validation only)\n" );
+        power_set_state(PWRSTATE_LOG);
         break;
     default:
         Serial1.println("?");

@@ -136,6 +136,7 @@ accel_suspend(struct device *dev) {
 static int
 accel_deinit(struct device *dev)
 {
+    accel_write(0x16, 0);
     return 0;
 }
 
