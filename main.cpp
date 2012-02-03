@@ -123,8 +123,8 @@ setup(void)
     cap_setkeyup(on_keyup);
     cap_setkeydown(on_keydown);
 
-    Serial1.println("Adding accelerometer...");
-    device_add(&accel);
+    //    Serial1.println("Adding accelerometer...");
+    //    device_add(&accel);
 
     Serial1.println("Done adding devices.");
 }
@@ -404,9 +404,6 @@ loop(unsigned int t)
     uint16 temp;
     signed int x, y, z;
 
-    if (power_needs_update())
-        power_update();
-
     if (dbg_touch)
         cap_debug();
     if (cap_should_poll())
@@ -414,12 +411,12 @@ loop(unsigned int t)
 
     drawTiles(t);
     
-    if (accel_read_state(&x, &y, &z))
-        Serial1.println("Unable to read accel value!");
+    //    if (accel_read_state(&x, &y, &z))
+    //        Serial1.println("Unable to read accel value!");
 
-    draw_number(4, 7, x);
-    draw_number(4, 8, y);
-    draw_number(4, 9, z);
+    //    draw_number(4, 7, x);
+    //    draw_number(4, 8, y);
+    //    draw_number(4, 9, z);
 
     update_keys(touch_pad);
 
@@ -551,9 +548,12 @@ main(void)
     /* All activity should take place in interrupts. */
     Serial1.println("Entering main loop...");
     while (true) {
+        if (power_needs_update())
+            power_update();
+
         if (power_get_state() == PWRSTATE_USER) {
             loop(t++);
-            power_sleep(); // just stop clock to CPU core, don't shut down peripherals
+            power_sleep(); // go into wfi state
         } else {
             Serial1.println(".");
         }
