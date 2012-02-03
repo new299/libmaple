@@ -10,6 +10,7 @@
 #include "switch.h"
 #include "buzzer.h"
 #include "battery.h"
+#include "accel.h"
 
 // for power control support
 #include "pwr.h"
@@ -21,6 +22,15 @@
 #define GEIGER_ON_GPIO    4  // PB5
 
 #define FIRMWARE_VERSION "Safecast firmware v0.1 Jan 28 2012"
+
+#define KEY_Q 0x01
+#define KEY_W 0x02
+#define KEY_E 0x04
+#define KEY_A 0x08
+#define KEY_S 0x10
+#define KEY_D 0x20
+static uint8 touch_pad;
+static uint8 old_touch_pad;
 
 const static uint8 images[][128] = {
     #include "font.h"
@@ -40,39 +50,45 @@ setup_gpio(void)
 static void
 on_keydown(char key)
 {
-    Serial1.print("Got keydown of key "); Serial1.println(key);
-
     if (key == 'Q')
-        tile_set(6, 5, images['q'-'`'+64]);
-    else if (key == 'W')
-        tile_set(7, 5, images['w'-'`'+64]);
-    else if (key == 'E')
-        tile_set(8, 5, images['e'-'`'+64]);
+        touch_pad |= KEY_Q;
 
-    else if (key == 'A')
-        tile_set(6, 6, images['a'-'`'+64]);
-    else if (key == 'S')
-        tile_set(7, 6, images['s'-'`'+64]);
-    else if (key == 'D')
-        tile_set(8, 6, images['d'-'`'+64]);
+    if (key == 'W')
+        touch_pad |= KEY_W;
+
+    if (key == 'E')
+        touch_pad |= KEY_E;
+
+    if (key == 'A')
+        touch_pad |= KEY_A;
+
+    if (key == 'S')
+        touch_pad |= KEY_S;
+
+    if (key == 'D')
+        touch_pad |= KEY_D;
 }
 
 static void
 on_keyup(char key)
 {
-    Serial1.print("Got keyup of key "); Serial1.println(key);
     if (key == 'Q')
-        tile_set(6, 5, images[32]);
-    else if (key == 'W')
-        tile_set(7, 5, images[32]);
-    else if (key == 'E')
-        tile_set(8, 5, images[32]);
-    else if (key == 'A')
-        tile_set(6, 6, images[32]);
-    else if (key == 'S')
-        tile_set(7, 6, images[32]);
-    else if (key == 'D')
-        tile_set(8, 6, images[32]);
+        touch_pad &= ~KEY_Q;
+
+    if (key == 'W')
+        touch_pad &= ~KEY_W;
+
+    if (key == 'E')
+        touch_pad &= ~KEY_E;
+
+    if (key == 'A')
+        touch_pad &= ~KEY_A;
+
+    if (key == 'S')
+        touch_pad &= ~KEY_S;
+
+    if (key == 'D')
+        touch_pad &= ~KEY_D;
 }
 
 /* Single-call setup routine */
@@ -104,6 +120,9 @@ setup(void)
     device_add(&captouch);
     cap_setkeyup(on_keyup);
     cap_setkeydown(on_keydown);
+
+    Serial1.println("Adding accelerometer...");
+    device_add(&accel);
 
     Serial1.println("Done adding devices.");
 }
@@ -188,24 +207,118 @@ static void fill_oled(int c) {
     tile_set(13, 6, images[32]);
     tile_set(14, 6, images[256+5]);
 
-    tile_set(1, 7, images[256+3]);
-    tile_set(2, 7, images[256+1]);
-    tile_set(3, 7, images[256+1]);
-    tile_set(4, 7, images[256+1]);
-    tile_set(5, 7, images[256+1]);
-    tile_set(6, 7, images[256+1]);
-    tile_set(7, 7, images[256+1]);
-    tile_set(8, 7, images[256+1]);
-    tile_set(9, 7, images[256+1]);
-    tile_set(10, 7, images[256+1]);
-    tile_set(11, 7, images[256+1]);
-    tile_set(12, 7, images[256+1]);
-    tile_set(13, 7, images[256+1]);
-    tile_set(14, 7, images[256+4]);
+    tile_set(1, 7, images[256+2]);
+    tile_set(2, 7, images['x'-'`'+64]);
+    tile_set(3, 7, images[58]);
+    tile_set(4, 7, images[32]);
+    tile_set(5, 7, images[32]);
+    tile_set(6, 7, images[32]);
+    tile_set(7, 7, images[32]);
+    tile_set(8, 7, images[32]);
+    tile_set(9, 7, images[32]);
+    tile_set(10, 7, images[32]);
+    tile_set(11, 7, images[32]);
+    tile_set(12, 7, images[32]);
+    tile_set(13, 7, images[32]);
+    tile_set(14, 7, images[256+5]);
+
+    tile_set(1, 8, images[256+2]);
+    tile_set(2, 8, images['y'-'`'+64]);
+    tile_set(3, 8, images[58]);
+    tile_set(4, 8, images[32]);
+    tile_set(5, 8, images[32]);
+    tile_set(6, 8, images[32]);
+    tile_set(7, 8, images[32]);
+    tile_set(8, 8, images[32]);
+    tile_set(9, 8, images[32]);
+    tile_set(10, 8, images[32]);
+    tile_set(11, 8, images[32]);
+    tile_set(12, 8, images[32]);
+    tile_set(13, 8, images[32]);
+    tile_set(14, 8, images[256+5]);
+
+    tile_set(1, 9, images[256+2]);
+    tile_set(2, 9, images['z'-'`'+64]);
+    tile_set(3, 9, images[58]);
+    tile_set(4, 9, images[32]);
+    tile_set(5, 9, images[32]);
+    tile_set(6, 9, images[32]);
+    tile_set(7, 9, images[32]);
+    tile_set(8, 9, images[32]);
+    tile_set(9, 9, images[32]);
+    tile_set(10, 9, images[32]);
+    tile_set(11, 9, images[32]);
+    tile_set(12, 9, images[32]);
+    tile_set(13, 9, images[32]);
+    tile_set(14, 9, images[256+5]);
+
+    tile_set(1, 6, images[256+2]);
+    tile_set(2, 6, images[32]);
+    tile_set(3, 6, images[32]);
+    tile_set(4, 6, images[32]);
+    tile_set(5, 6, images[32]);
+    tile_set(6, 6, images[32]);
+    tile_set(7, 6, images[32]);
+    tile_set(8, 6, images[32]);
+    tile_set(9, 6, images[32]);
+    tile_set(10, 6, images[32]);
+    tile_set(11, 6, images[32]);
+    tile_set(12, 6, images[32]);
+    tile_set(13, 6, images[32]);
+    tile_set(14, 6, images[256+5]);
+
+
+    tile_set(1, 10, images[256+3]);
+    tile_set(2, 10, images[256+1]);
+    tile_set(3, 10, images[256+1]);
+    tile_set(4, 10, images[256+1]);
+    tile_set(5, 10, images[256+1]);
+    tile_set(6, 10, images[256+1]);
+    tile_set(7, 10, images[256+1]);
+    tile_set(8, 10, images[256+1]);
+    tile_set(9, 10, images[256+1]);
+    tile_set(10, 10, images[256+1]);
+    tile_set(11, 10, images[256+1]);
+    tile_set(12, 10, images[256+1]);
+    tile_set(13, 10, images[256+1]);
+    tile_set(14, 10, images[256+4]);
+}
+
+
+static void
+draw_number(int x, int y, int n)
+{
+    {
+        unsigned char buf[8 * sizeof(long long)];
+        unsigned long i = 0;
+
+        if (n < 0) {
+            n = -n;
+            tile_set(x++, y, images[45]);
+        }
+
+        if (n == 0) {
+            tile_set(x++, y, images['0']);
+        }
+
+        else {
+            while (n > 0) {
+                buf[i++] = n % 10;
+                n /= 10;
+            }
+            for (; x<=13 && i > 0; i--,x++)
+                tile_set(x, y, images['0' + buf[i - 1]]);
+        }
+
+        /* Fill the rest of the line with space */
+        for (; x<=13; x++)
+            tile_set(x, y, images[32]);
+    }
 }
 
 
 static void drawTiles(int t) {
+    /*
     tile_draw(0, 10, images[(t+0)&0xff]);
     tile_draw(1, 10, images[(t+1)&0xff]);
     tile_draw(2, 10, images[(t+2)&0xff]);
@@ -222,26 +335,48 @@ static void drawTiles(int t) {
     tile_draw(13, 10, images[(t+13)&0xff]);
     tile_draw(14, 10, images[(t+14)&0xff]);
     tile_draw(15, 10, images[(t+15)&0xff]);
+    */
+}
 
-    {
-        unsigned char buf[8 * sizeof(long long)];
-        unsigned long i = 0, j, n = t;
+static void
+update_keys(int keys)
+{
+    const static uint8 *q_tile = images['q'-'`'+64];
+    const static uint8 *w_tile = images['w'-'`'+64];
+    const static uint8 *e_tile = images['e'-'`'+64];
+    const static uint8 *a_tile = images['a'-'`'+64];
+    const static uint8 *s_tile = images['s'-'`'+64];
+    const static uint8 *d_tile = images['d'-'`'+64];
+    const static uint8 *blank  = images[32];
+    if (keys & KEY_Q)
+        tile_set(6, 5, q_tile);
+    else
+        tile_set(6, 5, blank);
 
-        if (n == 0) {
-            buf[0] = '0';
-            i = 1;
-        }
-        else {
-            while (n > 0) {
-                buf[i++] = n % 10;
-                n /= 10;
-            }
-        }
-        for (j=2; j<=13 && i > 0; i--,j++)
-            tile_set(j, 4, images['0' + buf[i - 1]]);
-        for (; j<=13; j++)
-            tile_set(j, 4, images[32]);
-    }
+    if (keys & KEY_W)
+        tile_set(7, 5, w_tile);
+    else
+        tile_set(7, 5, blank);
+
+    if (keys & KEY_E)
+        tile_set(8, 5, e_tile);
+    else
+        tile_set(8, 5, blank);
+
+    if (keys & KEY_A)
+        tile_set(6, 6, a_tile);
+    else
+        tile_set(6, 6, blank);
+
+    if (keys & KEY_S)
+        tile_set(7, 6, s_tile);
+    else
+        tile_set(7, 6, blank);
+
+    if (keys & KEY_D)
+        tile_set(8, 6, d_tile);
+    else
+        tile_set(8, 6, blank);
 }
 
 
@@ -252,12 +387,24 @@ loop(unsigned int t)
     uint8 c;
     static int dbg_touch = 0;
     uint16 temp;
+    signed int x, y, z;
 
     if (dbg_touch)
         cap_debug();
+    if (cap_should_poll())
+        cap_poll();
 
-    drawTiles(t);
+    //drawTiles(t);
     
+    if (accel_read_state(&x, &y, &z))
+        Serial1.println("Unable to read accel value!");
+
+    draw_number(4, 7, x);
+    draw_number(4, 8, y);
+    draw_number(4, 9, z);
+
+    update_keys(touch_pad);
+
     c = '\0';
     if( Serial1.available() ) {
         c = Serial1.read();
