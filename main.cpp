@@ -378,24 +378,49 @@ draw_number(int x, int y, int n)
 
 static void
 drawTiles(int t) {
+    int level = battery_level();
+    int x, y;
     draw_number(4, 4, t);
 
-    tile_draw(0, 11, images[(t+0)&0xff]);
-    tile_draw(1, 11, images[(t+1)&0xff]);
-    tile_draw(2, 11, images[(t+2)&0xff]);
-    tile_draw(3, 11, images[(t+3)&0xff]);
-    tile_draw(4, 11, images[(t+4)&0xff]);
-    tile_draw(5, 11, images[(t+5)&0xff]);
-    tile_draw(6, 11, images[(t+6)&0xff]);
-    tile_draw(7, 11, images[(t+7)&0xff]);
-    tile_draw(8, 11, images[(t+8)&0xff]);
-    tile_draw(9, 11, images[(t+9)&0xff]);
-    tile_draw(10, 11, images[(t+10)&0xff]);
-    tile_draw(11, 11, images[(t+11)&0xff]);
-    tile_draw(12, 11, images[(t+12)&0xff]);
-    tile_draw(13, 11, images[(t+13)&0xff]);
-    tile_draw(14, 11, images[(t+14)&0xff]);
-    tile_draw(15, 11, images[(t+15)&0xff]);
+    tile_draw(0, 15, images[(t+0)&0xff]);
+    tile_draw(1, 15, images[(t+1)&0xff]);
+    tile_draw(2, 15, images[(t+2)&0xff]);
+    tile_draw(3, 15, images[(t+3)&0xff]);
+    tile_draw(4, 15, images[(t+4)&0xff]);
+    tile_draw(5, 15, images[(t+5)&0xff]);
+    tile_draw(6, 15, images[(t+6)&0xff]);
+    tile_draw(7, 15, images[(t+7)&0xff]);
+    tile_draw(8, 15, images[(t+8)&0xff]);
+    tile_draw(9, 15, images[(t+9)&0xff]);
+    tile_draw(10, 15, images[(t+10)&0xff]);
+    tile_draw(11, 15, images[(t+11)&0xff]);
+    tile_draw(12, 15, images[(t+12)&0xff]);
+    tile_draw(13, 15, images[(t+13)&0xff]);
+    tile_draw(14, 15, images[(t+14)&0xff]);
+    tile_draw(15, 15, images[(t+15)&0xff]);
+
+    x = 14;
+    y = 0;
+    if (level > 12) {
+        tile_set(x++, y, images[256+9+4]);
+        tile_set(x++, y, images[256+9+5]);
+    }
+    else if (level > 10) {
+        tile_set(x++, y, images[256+9+4]);
+        tile_set(x++, y, images[256+9+3]);
+    }
+    else if (level > 7) {
+        tile_set(x++, y, images[256+9+4]);
+        tile_set(x++, y, images[256+9+2]);
+    }
+    else if (level > 4) {
+        tile_set(x++, y, images[256+9+4]);
+        tile_set(x++, y, images[256+9+1]);
+    }
+    else {
+        tile_set(x++, y, images[256+9+4]);
+        tile_set(x++, y, images[256+9+0]);
+    }
 }
 
 static void
