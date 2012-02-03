@@ -47,6 +47,7 @@ switch_suspend(struct device *dev) {
 static int
 switch_deinit(struct device *dev)
 {
+    detachInterrupt(MANUAL_WAKEUP_GPIO);
     return 0;
 }
 

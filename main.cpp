@@ -12,6 +12,8 @@
 #include "battery.h"
 #include "accel.h"
 #include "time.h"
+#include "geiger.h"
+#include "led.h"
 
 // for power control support
 #include "pwr.h"
@@ -44,10 +46,7 @@ const static uint8 images[][128] = {
 static void
 setup_gpio(void)
 {
-    pinMode(GEIGER_PULSE_GPIO, INPUT);
-
-    pinMode(LED_GPIO, OUTPUT);  
-    digitalWrite(LED_GPIO, 0);
+    // nothing here anymore, all migrated to separate driver files
 }
 
 static void
@@ -130,6 +129,12 @@ setup(void)
 
     Serial1.println("Adding accelerometer...");
     device_add(&accel);
+
+    Serial1.println("Adding geiger detector...");
+    device_add(&geiger);
+
+    Serial1.println("Adding LED...");
+    device_add(&led);
 
     Serial1.println("Done adding devices.");
 }
@@ -423,19 +428,19 @@ drawTiles(int t) {
 
     x = 14;
     y = 0;
-    if (level > 14) {
+    if (level > 12) {
         tile_set(x++, y, images[256+9+4]);
         tile_set(x++, y, images[256+9+5]);
     }
-    else if (level > 11) {
+    else if (level > 9) {
         tile_set(x++, y, images[256+9+4]);
         tile_set(x++, y, images[256+9+3]);
     }
-    else if (level > 8) {
+    else if (level > 5) {
         tile_set(x++, y, images[256+9+4]);
         tile_set(x++, y, images[256+9+2]);
     }
-    else if (level > 4) {
+    else if (level > 3) {
         tile_set(x++, y, images[256+9+4]);
         tile_set(x++, y, images[256+9+1]);
     }

@@ -25,6 +25,10 @@ $(BUILD_PATH)/accel.o: accel.cpp
 	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
 $(BUILD_PATH)/pwr_test.o: pwr_test.c
 	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
+$(BUILD_PATH)/geiger.o: geiger.cpp
+	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
+$(BUILD_PATH)/led.o: led.cpp
+	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
 
 $(BUILD_PATH)/libmaple.a: $(BUILDDIRS) $(TGT_BIN)
 	- rm -f $@
@@ -36,6 +40,8 @@ library: $(BUILD_PATH)/libmaple.a
 
 $(BUILD_PATH)/$(BOARD).elf: $(BUILDDIRS) $(TGT_BIN) \
         $(BUILD_PATH)/main.o \
+        $(BUILD_PATH)/led.o \
+        $(BUILD_PATH)/geiger.o \
         $(BUILD_PATH)/pwr_test.o \
         $(BUILD_PATH)/battery.o \
         $(BUILD_PATH)/buzzer.o \
@@ -50,6 +56,8 @@ $(BUILD_PATH)/$(BOARD).elf: $(BUILDDIRS) $(TGT_BIN) \
         $(BUILD_PATH)/tiles.o
 	$(SILENT_LD) $(CXX) $(LDFLAGS) -o $@ $(TGT_BIN) \
         $(BUILD_PATH)/main.o \
+        $(BUILD_PATH)/led.o \
+        $(BUILD_PATH)/geiger.o \
         $(BUILD_PATH)/pwr_test.o \
         $(BUILD_PATH)/battery.o \
         $(BUILD_PATH)/buzzer.o \

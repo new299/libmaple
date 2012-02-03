@@ -115,17 +115,6 @@ battery_is_low(void)
 
     if( power_get_state() == PWRSTATE_LOG ) {   ////////// PWRSTATE_LOG TEST STATUS: THIS CODE IS UNTESTED
         if( (count % LOG_BATT_FREQ) == 0 ) {
-#if 0
-            // only once every LOG_BATT_FREQ events do we actually measure the battery
-            // this is to reduce power consumption
-            gpio_init_all();
-            afio_init();
-
-            // setup clocks assuming we just got woken up out of stop state
-            rcc_clk_init(RCC_CLKSRC_PLL, RCC_PLLSRC_HSI_DIV_2, RCC_PLLMUL_9); 
-            rcc_set_prescaler(RCC_PRESCALER_AHB, RCC_AHB_SYSCLK_DIV_1);
-            rcc_set_prescaler(RCC_PRESCALER_APB2, RCC_APB2_HCLK_DIV_1);
-#endif
             // init ADC
             rcc_set_prescaler(RCC_PRESCALER_ADC, RCC_ADCPRE_PCLK_DIV_6);
             adc_init(ADC1);
