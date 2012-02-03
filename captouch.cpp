@@ -318,7 +318,6 @@ cap_resume(struct device *dev)
     delay(100);
 
     pinMode(CAPTOUCH_GPIO, INPUT);  
-    Serial1.println( "Attaching captouch interrupt\n" );
     attachInterrupt(CAPTOUCH_GPIO, cap_change, CHANGE);
 
     /* Read from the status registers to clear pending IRQs */
