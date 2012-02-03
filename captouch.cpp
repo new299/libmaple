@@ -15,7 +15,7 @@
 static const char keys[] = "E.DWS.A.Q........";
 
 static struct i2c_dev *i2c = CAPTOUCH_I2C;
-static int should_poll = 1;
+static int should_poll;
 
 
 static void (*on_keydown)(char key);
@@ -235,6 +235,8 @@ cap_resume(struct device *dev)
     i2c_init(i2c);
     i2c_master_enable(i2c, 0);
 
+    should_poll = 1;
+
     mpr121Write(ELE_CFG, 0x00);   // disable electrodes for config
     delay(100);
 
@@ -320,7 +322,7 @@ cap_resume(struct device *dev)
 
     /* Read from the status registers to clear pending IRQs */
     mpr121Read(TCH_STATL);
-    mpr121Read(TCH_STATH) << 8;
+    mpr121Read(TCH_STATH);
 
     return 0;
 }
@@ -328,14 +330,15 @@ cap_resume(struct device *dev)
 static int
 cap_suspend(struct device *dev)
 {
-    Serial1.println( "Detaching captouch interrupt\n" );
     detachInterrupt(CAPTOUCH_GPIO);
+    should_poll = 0;
 
     // Disable MPR121 scanning, in case the chip is on
     if (switch_state(&back_switch))
         mpr121Write(ELE_CFG, 0x00);
 
     /* Shut down I2C */
+    i2c_disable(i2c);
 
     return 0;
 }
