@@ -220,14 +220,14 @@ battery_init(void)
 static int
 battery_resume(struct device *dev)
 {
-    Serial1.println ("Resuming battery timer.\n" );
+    Serial1.println ("Battery: Resuming timer." );
     measure_timer.resume();
     return 0;
 }
 
 static int
 battery_suspend(struct device *dev) {
-    Serial1.println ("Pausing battery timer.\n" );
+    Serial1.println ("Battery: Pausing timer." );
     measure_timer.pause();
     return 0;
 }
