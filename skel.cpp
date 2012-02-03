@@ -34,4 +34,6 @@ struct device skel = {
     skel_deinit,
     skel_suspend,
     skel_resume,
+
+    "Skeleton Driver",
 };
