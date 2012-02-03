@@ -73,34 +73,7 @@ power_stop(struct device *dev) {
     PWR_BASE->CSR = 0x100;   // allow wakeup pin to wake me up
     PWR_BASE->CR = 4;        // clear the woken up flag
     PWR_BASE->CR = 1;        // set the low power regulator mode, unset PDDS, 3 for standby
-
-    asm volatile (".code 16\n"
-                  "wfi\n");
     
-    return 0;
-}
-
-static int
-power_standby(struct device *dev) {
-#if 0
-    // enable wake on interrupt
-    PWR_BASE->CSR |= PWR_CSR_EWUP;
-
-    // standby will not wait for ISRs to exit
-    SCB_BASE->SCR &= ~SCB_SCR_SLEEPONEXIT;
-    
-    /* Enter "standby" mode */
-    // clear wakup flag
-    PWR_BASE->CR |= PWR_CR_CWUF;
-    
-    // set sleepdeep in cortex system control register
-    SCB_BASE->SCR |= SCB_SCR_SLEEPDEEP;
-
-    // select standby mode
-    PWR_BASE->CR |= PWR_CR_PDDS;
-
-    power_wfi(); // allow only interrupts to wake up the CPU from sleep
-#endif
     return 0;
 }
 
@@ -181,11 +154,8 @@ power_update(void)
     if (power_state == PWRSTATE_USER)
         device_resume_all();
 
-    else if (power_state == PWRSTATE_LOG) {
+    else if (power_state == PWRSTATE_LOG)
         device_pause_all();
-        // we will recover into this state
-        device_resume_all();
-    }
 
     else if (power_state == PWRSTATE_DOWN)
         device_remove_all();
