@@ -33,23 +33,30 @@ static HardwareTimer measure_timer(3);
 
 
 static uint8 debug = 0;
+static uint16 level;
 
 
 void
-battery_set_debug(int level)
+battery_set_debug(int l)
 {
-    debug = level;
+    debug = l;
+}
+
+
+uint16
+battery_level(void)
+{
+    return level;
 }
 
 
 // returns a calibrated ADC code for the current battery voltage
-uint16
-battery_level(void)
+static uint16
+battery_level_real(void)
 {
     uint32 battVal;
     uint32 vrefVal;
     uint32 ratio;
-    uint16 retcode = 0;
 
     uint32 cr2 = ADC1->regs->CR2;
     cr2 |= ADC_CR2_TSEREFE; // enable reference voltage only for this measurement
@@ -82,16 +89,16 @@ battery_level(void)
         return 0;
     ratio = ratio - 1292; // should always be positive now due to test above
 
-    retcode = ratio / (459 / BATT_RANGE);
+    level = ratio / (459 / BATT_RANGE);
 
     if (debug) {
         Serial1.print( "Rebased ratio: " );
         Serial1.println( ratio );
         Serial1.print( "Retcode: " );
-        Serial1.println( retcode );
+        Serial1.println( level );
     }
 
-    return retcode;
+    return level;
 }
 
 
@@ -148,7 +155,7 @@ battery_is_low(void)
         }
     }
 
-    if( battery_level() <= 5 )  // normally 0, 5 for testing
+    if( battery_level_real() <= 5 )  // normally 0, 5 for testing
         return 1;
     else
         return 0;
