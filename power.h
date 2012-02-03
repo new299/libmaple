@@ -20,6 +20,12 @@ int power_wfi(void);
 int power_wfe(void);
 int power_sleep(void);
 
+
+/* Call this to see if the power state changed during an IRQ to actually
+ * force the update to occur */
+int power_needs_update(void);
+void power_update(void);
+
 extern struct device power;
 
 #endif /* __POWER_H__ */

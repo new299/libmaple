@@ -404,6 +404,9 @@ loop(unsigned int t)
     uint16 temp;
     signed int x, y, z;
 
+    if (power_needs_update())
+        power_update();
+
     if (dbg_touch)
         cap_debug();
     if (cap_should_poll())
