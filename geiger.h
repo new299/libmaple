@@ -13,6 +13,8 @@
 
 int geiger_state(struct device *dev);
 
+int geiger_check_event(void); // polls for an event, for UI calls only
+
 extern struct device geiger;
 
 #endif /* __GEIGER_H__ */

@@ -72,8 +72,10 @@ power_stop(struct device *dev) {
     SCB_BASE->SCR = 0x4;     // set DEEPSLEEP
     PWR_BASE->CSR = 0x100;   // allow wakeup pin to wake me up
     PWR_BASE->CR = 4;        // clear the woken up flag
-    PWR_BASE->CR = 1;        // set the low power regulator mode, unset PDDS, 3 for standby
+    PWR_BASE->CR = 1;        // set the low power regulator mode, unset PDDS, 2 for standby
     
+    asm volatile (".code 16\n"
+                  "wfi\n");
     return 0;
 }
 
@@ -98,19 +100,15 @@ power_wfe(void)
 static int
 power_deinit(struct device *dev)
 {
-    // disable wake on interrupt
-    PWR_BASE->CSR &= ~PWR_CSR_EWUP;
-    
-    // set sleepdeep in cortex system control register
-    SCB_BASE->SCR |= SCB_SCR_SLEEPDEEP;
+    Serial1.println ("Putting CPU into standby.\n" );
 
-    // select standby mode
-    PWR_BASE->CR |= PWR_CR_PDDS;
+    SCB_BASE->SCR = 0x4;     // set DEEPSLEEP
+    PWR_BASE->CSR = 0x000;   // allow wakeup pin to wake me up
+    PWR_BASE->CR = 4;        // clear the woken up flag
+    PWR_BASE->CR = 2;        // set the low power regulator mode, unset PDDS, 2 for standby
     
-    // clear wakup flag
-    PWR_BASE->CSR &= ~PWR_CSR_EWUP;
-
-    power_wfi();
+    asm volatile (".code 16\n"
+                  "wfi\n");
     return 0;
 }
 
