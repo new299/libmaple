@@ -1,5 +1,5 @@
 #include "wirish.h"
-
+#include "device.h"
 
 
 static int
