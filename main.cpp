@@ -96,18 +96,18 @@ on_keyup(char key)
 static void
 setup(void)
 {
-    Serial1.println("Setting up GPIO...");
-    setup_gpio();
+    //    Serial1.println("Setting up GPIO...");
+    //    setup_gpio();
 
     // add devices. Devices are called in reverse order during susped, and forward order in resume
     Serial1.println("Adding power...");
     device_add(&power);
 
+    //    Serial1.println("Adding geiger detector...");
+    //    device_add(&geiger);
+
     Serial1.println("Adding back switch...");
     device_add(&back_switch);
-
-    Serial1.println("Adding geiger detector...");
-    device_add(&geiger);
 
     Serial1.println("Adding LED...");
     device_add(&led);
@@ -124,13 +124,13 @@ setup(void)
     Serial1.println("Adding OLED...");
     device_add(&oled);
 
-    Serial1.println("Adding accelerometer...");
-    device_add(&accel);
-
     Serial1.println("Adding captouch...");
     device_add(&captouch);
     cap_setkeyup(on_keyup);
     cap_setkeydown(on_keydown);
+
+    Serial1.println("Adding accelerometer...");
+    device_add(&accel);
 
     Serial1.println("Done adding devices.");
 }

@@ -13,6 +13,9 @@
 #define LED_GPIO 25       // PD2
 #define MANUAL_WAKEUP_GPIO 18 // PC3
 
+#define GEIGER_PULSE_GPIO 42 // PB3
+#define GEIGER_ON_GPIO    4  // PB5
+
 int delay_rate = 300000;
 int doStop = 0;
 
@@ -91,8 +94,25 @@ void switch_change_b(void)
     return;
 }
 
+void
+static geiger_rising_b(void)
+{
+    // for now, set to defaults but may want to lower clock rate so we're not burning battery
+    // to run a CPU just while the buzzer does its thing
+    rcc_clk_init(RCC_CLKSRC_PLL, RCC_PLLSRC_HSI_DIV_2, RCC_PLLMUL_9); 
+    rcc_set_prescaler(RCC_PRESCALER_AHB, RCC_AHB_SYSCLK_DIV_1);
+    rcc_set_prescaler(RCC_PRESCALER_APB1, RCC_APB2_HCLK_DIV_1);
+    rcc_set_prescaler(RCC_PRESCALER_APB2, RCC_APB2_HCLK_DIV_1);
+    
+    delay_us(100);
+    Serial1.println("beep.");
+    
+}
+
 // this version of pwr_test() tests stop and resume
 void pwr_test() {
+    uint32 temp;
+
     //    init();
     flash_enable_prefetch();
     flash_set_latency(FLASH_WAIT_STATE_1);
@@ -116,6 +136,8 @@ void pwr_test() {
     gpio_init_all();
     afio_init();
 
+    Serial1.begin(115200);
+
     pinMode(LED_GPIO, OUTPUT);  
     digitalWrite(LED_GPIO, 1);
 
@@ -123,7 +145,22 @@ void pwr_test() {
     doStop = 0;
     attachInterrupt(MANUAL_WAKEUP_GPIO, switch_change_b, CHANGE);
 
-    Serial1.begin(115200);
+    ////////
+    //    pinMode(GEIGER_ON_GPIO, OUTPUT);
+    //    digitalWrite(GEIGER_ON_GPIO, 1);
+    //    delay_us(1000); // 1 ms for the geiger to settle
+    //    temp = AFIO_BASE->MAPR & 0xF8FFFFFF;
+    //    temp = 0x04000000;
+    AFIO_BASE->MAPR = 0x04000000;
+    //    pinMode(GEIGER_PULSE_GPIO, INPUT_PULLDOWN); // make it INPUT for production, this is for testing without a module
+    delay_us(5000000);
+    Serial1.println((AFIO_BASE->MAPR) >> 16,16);
+
+    //    pinMode(42, INPUT_PULLDOWN);
+    //    attachInterrupt(42, geiger_rising_b, RISING);
+    pinMode(GEIGER_PULSE_GPIO, INPUT_PULLDOWN);
+    attachInterrupt(GEIGER_PULSE_GPIO, geiger_rising_b, RISING);
+    /////////
 
     while(1) {
         Serial1.print(".");

@@ -422,13 +422,13 @@ oled_deinit(struct device *dev)
     //==============================
     Set_Display_Off();
     digitalWrite(LCD_PWR_GPIO, 0); // cuts power to the display
-    delay(250); // give it 250ms to discharge, hard wait; prevent issues with switch bounce
     return 0;
 }
 
 static int
 oled_suspend(struct device *dev)
 {
+    digitalWrite(LCD_PWR_GPIO, 0); // cuts power to the display
     Set_Display_Off();
     return 0;
 }
@@ -436,6 +436,8 @@ oled_suspend(struct device *dev)
 static int
 oled_resume(struct device *dev)
 {
+    digitalWrite(LCD_PWR_GPIO, 1); // cuts power to the display
+    delay(2); // give it 2ms to power on
     Set_Display_On();
     return 0;
 }

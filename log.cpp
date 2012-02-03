@@ -20,8 +20,6 @@ log_deinit(struct device *dev)
 static int
 log_standby(struct device *dev)
 {
-    // enable wake on interrupt
-    PWR_BASE->CSR |= PWR_CSR_EWUP;
     return 0;
 }
 

@@ -53,13 +53,15 @@ geiger_check_event(void) {
 static int
 geiger_init(void)
 {
+    AFIO_BASE->MAPR |= 0x02000000; // turn off JTAG pin sharing
+
     pinMode(GEIGER_ON_GPIO, OUTPUT);
     digitalWrite(GEIGER_ON_GPIO, 1);
     delay_us(1000); // 1 ms for the geiger to settle
 
     pinMode(GEIGER_PULSE_GPIO, INPUT_PULLDOWN); // make it INPUT for production, this is for testing without a module
 
-    attachInterrupt(GEIGER_PULSE_GPIO, geiger_rising, CHANGE);
+    attachInterrupt(GEIGER_PULSE_GPIO, geiger_rising, RISING);
     return 0;
 }
 

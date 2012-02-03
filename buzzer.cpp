@@ -62,6 +62,7 @@ buzzer_init(void)
 
 static int
 buzzer_suspend(struct device *dev) {
+    buzzTimer.pause();
     return 0;
 }
 
@@ -69,6 +70,9 @@ buzzer_suspend(struct device *dev) {
 static int
 buzzer_deinit(struct device *dev)
 {
+    Serial1.println("De-init buzzer.\n");
+    buzzTimer.pause();
+    detachInterrupt(TIMER_CH4);
     return 0;
 }
 

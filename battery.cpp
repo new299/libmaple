@@ -224,6 +224,9 @@ battery_suspend(struct device *dev) {
 static int
 battery_deinit(struct device *dev)
 {
+    Serial1.println("De-init battery.");
+    measure_timer.pause();
+    detachInterrupt(TIMER_CH3);
     return 0;
 }
 

@@ -103,7 +103,7 @@ power_deinit(struct device *dev)
     Serial1.println ("Putting CPU into standby.\n" );
 
     SCB_BASE->SCR = 0x4;     // set DEEPSLEEP
-    PWR_BASE->CSR = 0x000;   // allow wakeup pin to wake me up
+    PWR_BASE->CSR = 0x000;   // don't wakeup pin to wake me up
     PWR_BASE->CR = 4;        // clear the woken up flag
     PWR_BASE->CR = 2;        // set the low power regulator mode, unset PDDS, 2 for standby
     
@@ -152,8 +152,10 @@ power_update(void)
     if (power_state == PWRSTATE_USER)
         device_resume_all();
 
-    else if (power_state == PWRSTATE_LOG)
+    else if (power_state == PWRSTATE_LOG) {
         device_pause_all();
+        device_resume_all();
+    }
 
     else if (power_state == PWRSTATE_DOWN)
         device_remove_all();

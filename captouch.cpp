@@ -6,6 +6,7 @@
 #include "mpr121.h"
 #include "i2c.h"
 #include "switch.h"
+#include "led.h"
 
 #define CAPTOUCH_ADDR 0x5A
 #define CAPTOUCH_I2C I2C1
@@ -93,12 +94,12 @@ cap_poll(void)
     for (key=0; key<16; key++) {
         if ( (board_state&(1<<key)) != (previous_board_state&(1<<key))) {
             if ( (board_state&(1<<key))) {
-                toggleLED();
+                led_toggle();
                 if (on_keydown)
                     on_keydown(keys[key]);
             }
             else if ( !(board_state&(1<<key)) ) {
-                toggleLED();
+                led_toggle();
                 if (on_keyup)
                     on_keyup(keys[key]);
             }
@@ -239,6 +240,20 @@ cap_init(void)
 static int
 cap_resume(struct device *dev)
 {
+    ///// potential accelerometer stuck I2C fix
+    Serial1.println("i2c: Unstuck fix.");
+    digitalWrite(9, 1); // force SCL, SDA into "idle state"
+    digitalWrite(5, 1); // symptom is that SDA is "stuck low"
+    pinMode(9, OUTPUT);
+    pinMode(5, OUTPUT);
+    digitalWrite(9, 1); // force SCL, SDA into "idle state"
+    digitalWrite(5, 1); // symptom is that SDA is "stuck low"
+    delay_us(1000);     // let it soak in for 1ms
+    pinMode(9, INPUT);  // and then revert to i2c settings
+    pinMode(5, INPUT);
+    delay_us(1000);
+    Serial1.println("i2c: Unstuck fix (done).");
+
     i2c_init(i2c);
     i2c_master_enable(i2c, 0);
     i2c->state = I2C_STATE_IDLE;
@@ -353,8 +368,11 @@ cap_suspend(struct device *dev)
 static int
 cap_deinit(struct device *dev)
 {
+    Serial1.println("De-init captouch\n" );
     detachInterrupt(CAPTOUCH_GPIO);
     should_poll = 0;
+
+    delay_us(100);
 
     // Disable MPR121 scanning, in case the chip is on
     if (switch_state(&back_switch))
