@@ -19,6 +19,8 @@ $(BUILD_PATH)/buzzer.o: buzzer.cpp
 	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
 $(BUILD_PATH)/battery.o: battery.cpp
 	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
+$(BUILD_PATH)/time.o: time.cpp
+	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
 $(BUILD_PATH)/accel.o: accel.cpp
 	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
 $(BUILD_PATH)/pwr_test.o: pwr_test.c
@@ -50,6 +52,7 @@ $(BUILD_PATH)/$(BOARD).elf: $(BUILDDIRS) $(TGT_BIN) \
         $(BUILD_PATH)/captouch.o \
         $(BUILD_PATH)/OLED.o \
         $(BUILD_PATH)/accel.o \
+        $(BUILD_PATH)/time.o \
         $(BUILD_PATH)/tiles.o
 	$(SILENT_LD) $(CXX) $(LDFLAGS) -o $@ $(TGT_BIN) \
         $(BUILD_PATH)/main.o \
@@ -65,6 +68,7 @@ $(BUILD_PATH)/$(BOARD).elf: $(BUILDDIRS) $(TGT_BIN) \
         $(BUILD_PATH)/captouch.o \
         $(BUILD_PATH)/OLED.o \
         $(BUILD_PATH)/accel.o \
+        $(BUILD_PATH)/time.o \
         $(BUILD_PATH)/tiles.o \
         -Wl,-Map,$(BUILD_PATH)/$(BOARD).map
 

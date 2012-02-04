@@ -14,6 +14,9 @@
 #include "geiger.h"
 #include "led.h"
 
+#include "time.h"
+
+
 // for power control support
 #include "pwr.h"
 #include "scb.h"
@@ -108,6 +111,9 @@ setup(void)
 
     Serial1.println("Adding back switch...");
     device_add(&back_switch);
+
+    Serial1.println("Adding real time clock...");
+    device_add(&time);
 
     Serial1.println("Adding LED...");
     device_add(&led);
@@ -339,7 +345,7 @@ static void fill_oled(int c) {
 
 
 static void
-draw_number(int x, int y, int n)
+draw_number(int x1, int y, int x2, int n)
 {
     {
         unsigned char buf[8 * sizeof(long long)];
@@ -347,11 +353,11 @@ draw_number(int x, int y, int n)
 
         if (n < 0) {
             n = -n;
-            tile_set(x++, y, images[45]);
+            tile_set(x1++, y, images[45]);
         }
 
         if (n == 0) {
-            tile_set(x++, y, images['0']);
+            tile_set(x1++, y, images['0']);
         }
 
         else {
@@ -359,13 +365,13 @@ draw_number(int x, int y, int n)
                 buf[i++] = n % 10;
                 n /= 10;
             }
-            for (; x<=13 && i > 0; i--,x++)
-                tile_set(x, y, images['0' + buf[i - 1]]);
+            for (; x1<=x2 && i > 0; i--,x1++)
+                tile_set(x1, y, images['0' + buf[i - 1]]);
         }
 
         /* Fill the rest of the line with space */
-        for (; x<=13; x++)
-            tile_set(x, y, images[32]);
+        for (; x1<=x2; x1++)
+            tile_set(x1, y, images[32]);
     }
 }
 
@@ -373,25 +379,54 @@ draw_number(int x, int y, int n)
 static void
 drawTiles(int t) {
     int level = battery_level();
+    int hour = time_hour();
+    int minute = time_minutes();
+    int second = time_seconds();
     int x, y;
-    draw_number(4, 4, t);
+    draw_number(4, 4, 13, t);
 
-    tile_draw(0, 15, images[(t+0)&0xff]);
-    tile_draw(1, 15, images[(t+1)&0xff]);
-    tile_draw(2, 15, images[(t+2)&0xff]);
-    tile_draw(3, 15, images[(t+3)&0xff]);
-    tile_draw(4, 15, images[(t+4)&0xff]);
-    tile_draw(5, 15, images[(t+5)&0xff]);
-    tile_draw(6, 15, images[(t+6)&0xff]);
-    tile_draw(7, 15, images[(t+7)&0xff]);
-    tile_draw(8, 15, images[(t+8)&0xff]);
-    tile_draw(9, 15, images[(t+9)&0xff]);
-    tile_draw(10, 15, images[(t+10)&0xff]);
-    tile_draw(11, 15, images[(t+11)&0xff]);
-    tile_draw(12, 15, images[(t+12)&0xff]);
-    tile_draw(13, 15, images[(t+13)&0xff]);
-    tile_draw(14, 15, images[(t+14)&0xff]);
-    tile_draw(15, 15, images[(t+15)&0xff]);
+    if (hour<10 || ((hour>12 && (hour-12)<10))) {
+        tile_set(x, y, images[256+9+6]);
+        draw_number(4, 0, 4, hour>12?hour-12:hour);
+    }
+    else
+        draw_number(4, 0, 4, hour>12?hour-12:hour);
+    tile_set(5, 0, images[58]);
+
+    if (minute < 10) {
+        tile_set(6, 0, images['0']);
+        draw_number(7, 0, 7, second);
+    }
+    else
+        draw_number(6, 0, 7, minute);
+
+    tile_set(8, 0, images[58]);
+
+    if (second < 10) {
+        tile_set(9, 0, images['0']);
+        draw_number(10, 0, 10, second);
+    }
+    else
+        draw_number(9, 0, 10, second);
+    tile_set(11, 0, images[(hour>12?'p':'p')-'`'+64]);
+    tile_set(12, 0, images['m'-'`'+64]);
+
+    tile_set(0, 15, images[(t+0)&0xff]);
+    tile_set(1, 15, images[(t+1)&0xff]);
+    tile_set(2, 15, images[(t+2)&0xff]);
+    tile_set(3, 15, images[(t+3)&0xff]);
+    tile_set(4, 15, images[(t+4)&0xff]);
+    tile_set(5, 15, images[(t+5)&0xff]);
+    tile_set(6, 15, images[(t+6)&0xff]);
+    tile_set(7, 15, images[(t+7)&0xff]);
+    tile_set(8, 15, images[(t+8)&0xff]);
+    tile_set(9, 15, images[(t+9)&0xff]);
+    tile_set(10, 15, images[(t+10)&0xff]);
+    tile_set(11, 15, images[(t+11)&0xff]);
+    tile_set(12, 15, images[(t+12)&0xff]);
+    tile_set(13, 15, images[(t+13)&0xff]);
+    tile_set(14, 15, images[(t+14)&0xff]);
+    tile_set(15, 15, images[(t+15)&0xff]);
 
     x = 14;
     y = 0;
@@ -483,10 +518,10 @@ loop(unsigned int t)
     
     if (accel_read_state(&x, &y, &z))
         Serial1.println("Unable to read accel value!");
-    
-    draw_number(4, 7, x);
-    draw_number(4, 8, y);
-    draw_number(4, 9, z);
+
+    draw_number(4, 7, 13, x);
+    draw_number(4, 8, 13, y);
+    draw_number(4, 9, 13, z);
 
     update_keys(touch_pad);
 
@@ -567,6 +602,15 @@ loop(unsigned int t)
         temp = battery_level();
         Serial1.print("Battery voltage code: ");
         Serial1.println(temp);
+        break;
+    case 'A':
+    case 'a':
+        Serial1.print("Time: ");
+        Serial1.println(time_get());
+        break;
+    case 'S':
+    case 's':
+        time_dump_registers();
         break;
     case '|':
         // use for validation only because it mucks with last power state tracking info

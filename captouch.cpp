@@ -36,7 +36,6 @@ mpr121Write(uint8 addr, uint8 value)
     msg.addr = CAPTOUCH_ADDR;
     msg.flags = 0;
     msg.length = sizeof(bytes);
-    msg.xferred = 0;
     msg.data = bytes;
 
     result = i2c_master_xfer(i2c, &msg, 1, 2000);
@@ -105,9 +104,6 @@ cap_poll(void)
             }
         }
     }
-
-    if (previous_board_state == board_state)
-        Serial1.println("Got a cap_change event, but no change noted");
 
     previous_board_state = board_state;
     should_poll = 0;
