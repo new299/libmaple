@@ -11,11 +11,9 @@
 #include "buzzer.h"
 #include "battery.h"
 #include "accel.h"
+#include "time.h"
 #include "geiger.h"
 #include "led.h"
-
-#include "time.h"
-
 
 // for power control support
 #include "pwr.h"
