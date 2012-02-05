@@ -10,7 +10,7 @@
 #define PWRSTATE_OFF   4   // power is simply off, or cold reset
 #define PWRSTATE_ERROR 5   // an error conditions state
 
-#define WAKEUP_PATCHED 0
+#define WAKEUP_PATCHED 1
 
 int switch_state(struct device *dev);
 

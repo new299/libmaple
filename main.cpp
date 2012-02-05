@@ -673,7 +673,7 @@ main(void)
     power_set_debug(1);
     buzzer_buzz_blocking();
 
-    battery_set_debug(0);
+    battery_set_debug(1);
 
     fill_oled(0); // eventually this can go away i think.
 
@@ -686,10 +686,15 @@ main(void)
         if (power_get_state() == PWRSTATE_USER) {
             loop(t++);
             power_sleep(); // go into wfi state
-        }
-        else {
+        } else {
             //            Serial1.print("Sleep loop #"); Serial1.println(t++);
-            power_wfi();
+            power_log_stop();
+            t++;
+            if( (t % 100) == 0 ) {
+                if( battery_is_low() ) {
+                    power_force_standby();
+                }
+            }
         }
     }
 

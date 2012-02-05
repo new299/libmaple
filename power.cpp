@@ -70,6 +70,17 @@ int power_sleep() {
     return 0;
 }
 
+void power_log_stop(void) {
+    // hard code register values because the macros provided by libmaple are broken
+    SCB_BASE->SCR = 0x4;     // set DEEPSLEEP
+    PWR_BASE->CSR = 0x100;   // allow wakeup pin to wake me up
+    PWR_BASE->CR = 4;        // clear the woken up flag
+    PWR_BASE->CR = 1;        // set the low power regulator mode, unset PDDS, 2 for standby
+    
+    asm volatile (".code 16\n"
+                  "wfi\n");
+}
+
 static int
 power_stop(struct device *dev) { 
     uint32 gpioBkp[8];
@@ -134,6 +145,16 @@ power_wfe(void)
     asm volatile (".code 16\n"
                   "wfe\n");
     return 0;
+}
+
+void power_force_standby() {
+    SCB_BASE->SCR = 0x4;     // set DEEPSLEEP
+    PWR_BASE->CSR = 0x000;   // don't wakeup pin to wake me up
+    PWR_BASE->CR = 4;        // clear the woken up flag
+    PWR_BASE->CR = 2;        // set the low power regulator mode, unset PDDS, 2 for standby
+    
+    asm volatile (".code 16\n"
+                  "wfi\n");
 }
 
 static int

@@ -19,6 +19,8 @@ int power_get_state(void);
 int power_wfi(void);
 int power_wfe(void);
 int power_sleep(void);
+void power_log_stop(void);
+void power_force_standby(void);
 
 
 /* Call this to see if the power state changed during an IRQ to actually
