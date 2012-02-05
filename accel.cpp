@@ -129,8 +129,11 @@ accel_resume(struct device *dev)
 static int
 accel_suspend(struct device *dev) {
     /* Set the "mode" to "Standby" */
+#if WAKEUP_PATCHED
 #warning Need hardware patch to get this working
-    //accel_write(0x16, 0);
+    Serial1.println( "Sleeping MMA7455\n" );
+    accel_write(0x16, 0);
+#endif
     return 0;
 }
 

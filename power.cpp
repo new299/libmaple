@@ -76,7 +76,7 @@ power_stop(struct device *dev) {
 
     Serial1.println ("Stopping CPU.\n" ); // for debug only
 
-    // TODO: backup and restore of GPIO and clock state
+    //backup GPIO state
     gpioBkp[0] = GPIOA->regs->CRL;
     gpioBkp[1] = GPIOA->regs->CRH;
     gpioBkp[2] = GPIOB->regs->CRL;
@@ -86,11 +86,12 @@ power_stop(struct device *dev) {
     gpioBkp[6] = GPIOD->regs->CRL;
     gpioBkp[7] = GPIOD->regs->CRH;
 
+    // force all GPIOs to inputs -- saves power
     GPIOA->regs->CRL = 0x44444444;
     GPIOA->regs->CRH = 0x44444444;
     GPIOB->regs->CRL = 0x44444444;
     GPIOB->regs->CRH = 0x44444444;
-    GPIOC->regs->CRL = 0x44444444;
+    GPIOC->regs->CRL = 0x44444424; // PC1 still an output, to drive regulators off
     GPIOC->regs->CRH = 0x44444444;
     GPIOD->regs->CRL = 0x44444444;
     GPIOD->regs->CRH = 0x44444444;
@@ -104,6 +105,7 @@ power_stop(struct device *dev) {
     asm volatile (".code 16\n"
                   "wfi\n");
 
+    // restore GPIOs
     GPIOA->regs->CRL = gpioBkp[0];
     GPIOA->regs->CRH = gpioBkp[1];
     GPIOB->regs->CRL = gpioBkp[2];
@@ -112,6 +114,7 @@ power_stop(struct device *dev) {
     GPIOC->regs->CRH = gpioBkp[5];
     GPIOD->regs->CRL = gpioBkp[6];
     GPIOD->regs->CRH = gpioBkp[7];
+
     return 0;
 }
 

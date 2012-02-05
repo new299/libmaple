@@ -351,9 +351,11 @@ cap_suspend(struct device *dev)
     detachInterrupt(CAPTOUCH_GPIO);
     should_poll = 0;
 
-    // Disable MPR121 scanning, in case the chip is on
-    if (switch_state(&back_switch))
+#if WAKEUP_PATCHED
+#warning This build assumes you have the WAKEUP patch
+        Serial1.println( "Deselecting MPR121 electrodes\n" );
         mpr121Write(ELE_CFG, 0x00);
+#endif
 
     /* Shut down I2C */
     i2c_disable(i2c);
@@ -371,8 +373,11 @@ cap_deinit(struct device *dev)
     delay_us(100);
 
     // Disable MPR121 scanning, in case the chip is on
-    if (switch_state(&back_switch))
+#if WAKEUP_PATCHED
+#warning This build assumes you have the WAKEUP patch
+        Serial1.println( "Deselecting MPR121 electrodes\n" );
         mpr121Write(ELE_CFG, 0x00);
+#endif
 
     /* Shut down I2C */
     i2c_disable(i2c);
