@@ -104,11 +104,20 @@ setup(void)
     Serial1.println("Adding power...");
     device_add(&power);
 
-    //    Serial1.println("Adding geiger detector...");
-    //    device_add(&geiger);
-
+    // important: first thing to do is check back switch state
     Serial1.println("Adding back switch...");
     device_add(&back_switch);
+
+    /* Determine whether the power switch is "on" or "off" */
+    if (switch_state(&back_switch))
+        power_set_state(PWRSTATE_USER);
+    else
+        power_set_state(PWRSTATE_LOG);
+
+    // the init behavior for i2c will depend upon the switch state...
+    
+    Serial1.println("Adding geiger detector...");
+    device_add(&geiger);
 
     Serial1.println("Adding real time clock...");
     device_add(&time);
@@ -133,6 +142,8 @@ setup(void)
     cap_setkeyup(on_keyup);
     cap_setkeydown(on_keydown);
 
+    // accelerometer must always be after captouch as it depends on
+    // i2c initialization inside captouch
     Serial1.println("Adding accelerometer...");
     device_add(&accel);
 
@@ -620,6 +631,16 @@ loop(unsigned int t)
         Serial1.println("Forcing stop (use for validation only)\n" );
         power_set_state(PWRSTATE_LOG);
         break;
+    case 'p':
+        Serial1.print("AHBENR: 0x");
+        Serial1.println(RCC_BASE->AHBENR, 16);
+
+        Serial1.print("APB1ENR: 0x");
+        Serial1.println(RCC_BASE->APB1ENR, 16);
+
+        Serial1.print("APB2ENR: 0x");
+        Serial1.println(RCC_BASE->APB2ENR, 16);
+        break;
     default:
         Serial1.println("?");
     }
@@ -652,15 +673,9 @@ main(void)
     power_set_debug(1);
     buzzer_buzz_blocking();
 
-    battery_set_debug(1);
+    battery_set_debug(0);
 
-    /* Determine whether the power switch is "on" or "off" */
-    if (switch_state(&back_switch))
-        power_set_state(PWRSTATE_USER);
-    else
-        power_set_state(PWRSTATE_LOG);
     fill_oled(0); // eventually this can go away i think.
-
 
     /* All activity should take place in interrupts. */
     Serial1.println("Entering main loop...");
@@ -673,7 +688,7 @@ main(void)
             power_sleep(); // go into wfi state
         }
         else {
-            Serial1.print("Sleep loop #"); Serial1.println(t++);
+            //            Serial1.print("Sleep loop #"); Serial1.println(t++);
             power_wfi();
         }
     }

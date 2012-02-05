@@ -3,7 +3,7 @@
 
 #include "wirish.h"
 #include "power.h"
-
+#include "switch.h"
 
 // for power control support
 #include "pwr.h"
@@ -30,6 +30,12 @@ static uint8 power_state = PWRSTATE_BOOT;
 static uint8 last_power_state = PWRSTATE_OFF;
 static uint8 debug;
 
+/*
+empirically, wirish does this:
+AHBENR: 0x14   - SRAM clock enabled, FLITF clock enabled
+APB1ENR: 0x1020403F - TIM2-7, SPI2, I2C1, PWR
+APB2ENR: 0xEFFD - AFIO, IOPA-IOPG, ADC1, ADC2, TIM1, TIM8, USART1, ADC3
+ */
 
 static int
 power_init(void)
@@ -66,7 +72,28 @@ int power_sleep() {
 
 static int
 power_stop(struct device *dev) { 
+    uint32 gpioBkp[8];
+
     Serial1.println ("Stopping CPU.\n" ); // for debug only
+
+    // TODO: backup and restore of GPIO and clock state
+    gpioBkp[0] = GPIOA->regs->CRL;
+    gpioBkp[1] = GPIOA->regs->CRH;
+    gpioBkp[2] = GPIOB->regs->CRL;
+    gpioBkp[3] = GPIOB->regs->CRH;
+    gpioBkp[4] = GPIOC->regs->CRL;
+    gpioBkp[5] = GPIOC->regs->CRH;
+    gpioBkp[6] = GPIOD->regs->CRL;
+    gpioBkp[7] = GPIOD->regs->CRH;
+
+    GPIOA->regs->CRL = 0x44444444;
+    GPIOA->regs->CRH = 0x44444444;
+    GPIOB->regs->CRL = 0x44444444;
+    GPIOB->regs->CRH = 0x44444444;
+    GPIOC->regs->CRL = 0x44444444;
+    GPIOC->regs->CRH = 0x44444444;
+    GPIOD->regs->CRL = 0x44444444;
+    GPIOD->regs->CRH = 0x44444444;
 
     // hard code register values because the macros provided by libmaple are broken
     SCB_BASE->SCR = 0x4;     // set DEEPSLEEP
@@ -76,6 +103,15 @@ power_stop(struct device *dev) {
     
     asm volatile (".code 16\n"
                   "wfi\n");
+
+    GPIOA->regs->CRL = gpioBkp[0];
+    GPIOA->regs->CRH = gpioBkp[1];
+    GPIOB->regs->CRL = gpioBkp[2];
+    GPIOB->regs->CRH = gpioBkp[3];
+    GPIOC->regs->CRL = gpioBkp[4];
+    GPIOC->regs->CRH = gpioBkp[5];
+    GPIOD->regs->CRL = gpioBkp[6];
+    GPIOD->regs->CRH = gpioBkp[7];
     return 0;
 }
 
@@ -149,12 +185,19 @@ power_update(void)
     if (last_power_state == power_state)
         return;
 
-    if (power_state == PWRSTATE_USER)
-        device_resume_all();
+    if (power_state == PWRSTATE_USER) {
+        if( switch_state(&back_switch) != 0 )  // something is borked in power code. this hack fixes it.
+            // the problem is that despite the switch being in LOG state, something is really eager
+            // about setting the power state to user. 
+            device_resume_all();
+        else
+            power_state = PWRSTATE_LOG;
+    }
 
     else if (power_state == PWRSTATE_LOG) {
         device_pause_all();
-        device_resume_all();
+        if( switch_state(&back_switch) != 0 )  // something is borked in power code. this hack fixes it.
+            device_resume_all();
     }
 
     else if (power_state == PWRSTATE_DOWN)

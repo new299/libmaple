@@ -1,3 +1,8 @@
+/***
+    important note: accel must be AFTER captouch in initialization sequence, as accel
+    relies on i2c init by captouch
+ ***/
+
 #include "wirish.h"
 #include "device.h"
 #include "i2c.h"
@@ -110,8 +115,6 @@ accel_read_state(int *x, int *y, int *z)
 static int
 accel_init(void)
 {
-    i2c_init(i2c);
-    i2c_master_enable(i2c, 0);
     return 0;
 }
 
@@ -119,7 +122,6 @@ accel_init(void)
 static int
 accel_resume(struct device *dev)
 {
-
     return 0;
 }
 

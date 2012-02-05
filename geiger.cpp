@@ -14,6 +14,7 @@
 
 #define GEIGER_PULSE_GPIO 42 // PB3
 #define GEIGER_ON_GPIO    4  // PB5
+#define LED_GPIO 25       // PD2
 
 static uint32 eventCount = 0;
 
@@ -22,18 +23,15 @@ geiger_rising(void)
 {
     // for now, set to defaults but may want to lower clock rate so we're not burning battery
     // to run a CPU just while the buzzer does its thing
-    rcc_clk_init(RCC_CLKSRC_PLL, RCC_PLLSRC_HSI_DIV_2, RCC_PLLMUL_9); 
-    rcc_set_prescaler(RCC_PRESCALER_AHB, RCC_AHB_SYSCLK_DIV_1);
-    rcc_set_prescaler(RCC_PRESCALER_APB1, RCC_APB2_HCLK_DIV_1);
-    rcc_set_prescaler(RCC_PRESCALER_APB2, RCC_APB2_HCLK_DIV_1);
-    
-    Serial1.println("beep.");
-    
     if (power_get_state() == PWRSTATE_LOG ) {
         // do some data logging stuff.
+        pinMode(LED_GPIO, OUTPUT);
+        digitalWrite(LED_GPIO, 1);
+        delay_us(10000);
+        digitalWrite(LED_GPIO, 0);
     } else {
         // assume we're in the power on state...
-        // for now just count the events, being wary of overflow (god forbid you get 4 billion radiation events...
+        // for now just count the events, being wary of overflow (god forbid you get 4 billion ardiation events...
         if(eventCount < UINT_MAX) 
             eventCount++;
     }
