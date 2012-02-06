@@ -14,6 +14,8 @@
 int geiger_state(struct device *dev);
 
 int geiger_check_event(void); // polls for an event, for UI calls only
+uint32 geiger_get_cpm_inst(); // all events in the last minute (interrupt driven so accurate until saturation)
+uint32 geiger_get_cpm_avg();  // a little bit better, captures all events but math could use some work
 
 extern struct device geiger;
 

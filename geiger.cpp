@@ -11,6 +11,7 @@
 #include "scb.h"
 #include "exti.h"
 #include "gpio.h"
+#include "time.h"
 
 #define GEIGER_PULSE_GPIO 42 // PB3
 #define GEIGER_ON_GPIO    4  // PB5
@@ -18,9 +19,34 @@
 
 static uint32 eventCount = 0;
 
+static uint32 cpm = 0;
+static uint32 cpmAve = 0;
+static uint32 counts = 0;
+static int lastTime = 0;
+
+uint32 geiger_get_cpm_inst() {
+    return cpm;
+}
+
+uint32 geiger_get_cpm_avg() {
+    return cpmAve;
+}
+
 static void
 geiger_rising(void)
 {
+    uint32 curTime;
+
+    curTime = time_get();
+
+    if( curTime - lastTime >= 60 ) {
+        cpmAve = (cpm + counts) / 2;
+        cpm = counts;
+        counts = 0;
+        lastTime = curTime;
+    }
+    counts++;
+
     // for now, set to defaults but may want to lower clock rate so we're not burning battery
     // to run a CPU just while the buzzer does its thing
     if (power_get_state() == PWRSTATE_LOG ) {

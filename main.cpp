@@ -218,9 +218,9 @@ static void fill_oled(int c) {
     tile_set(0, y, images[256+9+7]);
     tile_set(1, y, images[256+2]);
     tile_set(2, y, images[32]);
-    tile_set(3, y, images[32]);
-    tile_set(4, y, images[32]);
-    tile_set(5, y, images[32]);
+    tile_set(3, y, images['c'-'`']);
+    tile_set(4, y, images['p'-'`']);
+    tile_set(5, y, images['m'-'`']);
     tile_set(6, y, images[32]);
     tile_set(7, y, images[32]);
     tile_set(8, y, images[32]);
@@ -392,7 +392,7 @@ drawTiles(int t) {
     int minute = time_minutes();
     int second = time_seconds();
     int x, y;
-    draw_number(4, 4, 13, t);
+    //    draw_number(4, 4, 13, t);
 
     if (hour<10 || ((hour>12 && (hour-12)<10))) {
         tile_set(x, y, images[256+9+6]);
@@ -511,19 +511,36 @@ loop(unsigned int t)
     static int dbg_touch = 0;
     uint16 temp;
     signed int x, y, z;
+    static uint32 cpm = 0;
+    static uint32 cpmAve = 0;
+    static uint32 counts = 0;
+    uint32 curTime = time_get();
+    static int lastTime = 0;
+    int events;
 
     if (dbg_touch)
         cap_debug();
     if (cap_should_poll())
         cap_poll();
 
-    if(geiger_check_event()) {
+    if( curTime - lastTime >= 60 ) {
+        cpmAve = (cpm + counts) / 2;
+        cpm = counts;
+        counts = 0;
+        lastTime = curTime;
+    }
+    events = geiger_check_event();
+    if(events) {
+        counts += events;
         led_set(1);
         buzzer_buzz_blocking();
         led_set(0);
     }
 
     drawTiles(t);
+
+    draw_number(7,4,9, geiger_get_cpm_inst());
+    draw_number(11,4,13, geiger_get_cpm_avg());
     
     if (accel_read_state(&x, &y, &z))
         Serial1.println("Unable to read accel value!");
