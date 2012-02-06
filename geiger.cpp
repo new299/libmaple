@@ -57,7 +57,7 @@ geiger_rising(void)
         digitalWrite(LED_GPIO, 0);
     } else {
         // assume we're in the power on state...
-        // for now just count the events, being wary of overflow (god forbid you get 4 billion ardiation events...
+        // for now just count the events, being wary of overflow (god forbid you get 4 billion radiation events...
         if(eventCount < UINT_MAX) 
             eventCount++;
     }
@@ -83,7 +83,7 @@ geiger_init(void)
     digitalWrite(GEIGER_ON_GPIO, 1);
     delay_us(1000); // 1 ms for the geiger to settle
 
-    pinMode(GEIGER_PULSE_GPIO, INPUT_PULLDOWN); // make it INPUT for production, this is for testing without a module
+    pinMode(GEIGER_PULSE_GPIO, INPUT);
 
     attachInterrupt(GEIGER_PULSE_GPIO, geiger_rising, RISING);
     return 0;
