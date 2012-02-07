@@ -5,7 +5,8 @@
 #include "buzzer.h"
 
 #define BUZZER_PWM 24 // PB9
-#define BUZZ_RATE  250  // in microseconds; set to 4kHz = 250us
+//#define BUZZ_RATE  250  // in microseconds; set to 4kHz = 250us
+#define BUZZ_RATE  125  // in microseconds; set to 4kHz = 250us
 
 static HardwareTimer buzzTimer(4);
 static int volume = 1;
