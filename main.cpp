@@ -5,7 +5,7 @@
 #include "captouch.h"
 #include "power.h"
 #include "tiles.h"
-#include "oled.h"
+#include "OLED.h"
 #include "log.h"
 
 // for power control support
